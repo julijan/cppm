@@ -26,6 +26,8 @@ namespace utils {
 		bool pathExists(path p);
 
 		void mkdir(path p);
+
+		path currentPath();
 	}
 
 	namespace system {

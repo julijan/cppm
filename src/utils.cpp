@@ -41,9 +41,15 @@ namespace utils {
 		bool pathExists(path p) {
 			return exists(p);
 		}
+
 		void mkdir(path p)
 		{
 			create_directory(p);
+		}
+
+		path currentPath()
+		{
+			return current_path();
 		}
 	}
 
