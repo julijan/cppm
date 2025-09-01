@@ -2,6 +2,7 @@
 
 #include <string>
 #include <variant>
+#include <functional>
 #include "boost/json.hpp"
 #include "types.h"
 
@@ -46,10 +47,10 @@ public:
 	static bool packageExists(const char* const name);
 
 	// filter packages using given predicate
-	static std::vector<Package> filter(bool (*predicate)(Package& pkg));
+	static std::vector<Package> filter(std::function<bool(Package&)> predicate);
 
 	// returns the first package matching the given predicate
-	static MaybePackage find(bool (*predicate)(Package& pkg));
+	static MaybePackage find(std::function<bool(Package&)> predicate);
 
 	// if given package exists, returns std::variant holding Package instance
 	static MaybePackage get(const char* const name);

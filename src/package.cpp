@@ -214,7 +214,7 @@ bool Package::packageExists(const char *const name)
 	return false;
 }
 
-std::vector<Package> Package::filter(bool (*predicate)(Package& pkg))
+std::vector<Package> Package::filter(std::function<bool(Package&)> predicate)
 {
 	std::vector<Package> packages = Package::packages();
 
@@ -229,7 +229,7 @@ std::vector<Package> Package::filter(bool (*predicate)(Package& pkg))
 	return matched;
 }
 
-MaybePackage Package::find(bool (*predicate)(Package &pkg))
+MaybePackage Package::find(std::function<bool(Package&)> predicate)
 {
 	std::vector<Package> packages = Package::packages();
 	
