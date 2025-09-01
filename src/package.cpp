@@ -266,7 +266,7 @@ Package Package::fromJSON(boost::json::value data)
 		linkableObjects,
 		dependencies,
 		data.at("managed").as_bool(),
-		data.at("registeredAt").as_uint64()
+		data.at("registeredAt").as_int64()
 	);
 }
 
