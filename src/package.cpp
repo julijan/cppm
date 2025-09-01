@@ -237,10 +237,10 @@ MaybePackage Package::find(std::function<bool(Package&)> predicate)
 
 	if (found != packages.end()) {
 		// not found
-		return PackageNotFound();
+		return *found;
 	}
-
-	return *found;
+	
+	return PackageNotFound();
 }
 
 MaybePackageJSON Package::getJSON(const char *const name)
@@ -303,7 +303,7 @@ std::vector<Package> Package::getDependencies(const char *const name)
 MaybePackage Package::includesPath(std::filesystem::path p)
 {
 	const std::string pathString = p.string();
-	return Package::find([pathString](Package& pkg) {
+	return Package::find([&pathString](Package& pkg) {
 		return pathString.starts_with(pkg.path);
 	});
 }
