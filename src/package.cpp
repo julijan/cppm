@@ -213,6 +213,33 @@ bool Package::packageExists(const char *const name)
 	return false;
 }
 
+MaybePackageJSON Package::getJSON(const char *const name)
+{
+	const auto packages = Package::packagesJSON();
+
+	for (auto package: packages) {
+		if (package.as_object().at("name") == name) {
+			return MaybePackageJSON(package.as_object());
+		}
+	}
+
+	const char* notFound = nullptr;
+	return MaybePackageJSON(notFound);
+}
+
+MaybePackage Package::get(const char *const name)
+{
+	const MaybePackageJSON packageJSON = Package::getJSON(name);
+
+	if (std::holds_alternative<boost::json::object>(packageJSON)) {
+		// found, return as Package instance
+		return Package::fromJSON(std::get<boost::json::object>(packageJSON));
+	}
+
+	const char* notFound = nullptr;
+	return MaybePackage(notFound);
+}
+
 std::string Package::typeToString(PackageType t) {
 	switch (t) {
 		case PackageType::ConsoleApp: return "ConsoleApp";
