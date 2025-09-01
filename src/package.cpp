@@ -302,14 +302,9 @@ std::vector<Package> Package::getDependencies(const char *const name)
 
 MaybePackage Package::get(const char *const name)
 {
-	const MaybePackageJSON packageJSON = Package::getJSON(name);
-
-	if (std::holds_alternative<PackageJSON>(packageJSON)) {
-		// found, return as Package instance
-		return Package::fromJSON(std::get<PackageJSON>(packageJSON));
-	}
-
-	return PackageNotFound();
+	return Package::find([name](Package pkg) {
+		return pkg.name == name;
+	});
 }
 
 std::string Package::typeToString(PackageType t) {
