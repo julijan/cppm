@@ -311,7 +311,7 @@ MaybePackage Package::includesPath(std::filesystem::path p)
 MaybePackage Package::inPath(std::filesystem::path p)
 {
 	const std::string pathString = p.string();
-	return Package::find([pathString](Package& pkg) {
+	return Package::find([&pathString](Package& pkg) {
 		return pkg.path == pathString;
 	});
 }
