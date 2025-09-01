@@ -4,6 +4,7 @@
 #include <cstring>
 #include <vector>
 #include <string>
+#include <algorithm>
 
 #include "package.h"
 #include "utils.h"
@@ -225,6 +226,50 @@ MaybePackageJSON Package::getJSON(const char *const name)
 
 	const char* notFound = nullptr;
 	return MaybePackageJSON(notFound);
+}
+
+std::vector<std::string> Package::dependencyNames(const char *const name)
+{
+	MaybePackage package = Package::get(name);
+
+	if (std::holds_alternative<Package>(package)) {
+		// package exists, return dependencies
+		std::vector<std::string> dependencyNames = std::get<Package>(package).dependencies;
+
+		// make sure dependencies exist, remove non-existent
+		std::remove_if(dependencyNames.begin(), dependencyNames.end(), [](std::string depName) {
+			return !Package::packageExists(depName.c_str());
+		});
+
+		return dependencyNames;
+	}
+
+	return std::vector<std::string>();
+}
+
+std::vector<Package> Package::getDependencies(const char *const name)
+{
+	MaybePackage package = Package::get(name);
+
+	if (std::holds_alternative<Package>(package)) {
+		// package exists, return dependencies
+		std::vector<std::string> dependencyNames = Package::dependencyNames(name);
+
+		// return the dependencies as Package instance
+		std::vector<Package> dependencies;
+		std::transform(
+			dependencyNames.begin(),
+			dependencyNames.end(),
+			std::back_inserter(dependencies),
+			[](std::string depName) {
+				return std::get<Package>(Package::get(depName.c_str()));
+			}
+		);
+
+		return dependencies;
+	}
+
+	return std::vector<Package>();
 }
 
 MaybePackage Package::get(const char *const name)

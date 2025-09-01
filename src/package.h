@@ -50,6 +50,9 @@ public:
 	// if given package exists, returns std::variant holding PackageJSON
 	static MaybePackageJSON getJSON(const char* const name);
 
+	// return package dependency names
+	static std::vector<std::string> dependencyNames(const char* const name);
+
 	// return package dependencies
 	static std::vector<Package> getDependencies(const char* const name);
 
