@@ -214,6 +214,36 @@ bool Package::packageExists(const char *const name)
 	return false;
 }
 
+std::vector<Package> Package::filter(bool (*predicate)(Package& pkg))
+{
+	std::vector<Package> packages = Package::packages();
+
+	std::vector<Package> matched;
+	std::copy_if(
+		packages.begin(),
+		packages.end(),
+		std::back_inserter(matched),
+		predicate
+	);
+
+	return matched;
+}
+
+MaybePackage Package::find(bool (*predicate)(Package &pkg))
+{
+	std::vector<Package> packages = Package::packages();
+	
+	auto found = std::find_if(packages.begin(), packages.end(), predicate);
+
+	if (found != packages.end()) {
+		// not found
+		const char* notFound = nullptr;
+		return MaybePackage(notFound);
+	}
+
+	return *found;
+}
+
 MaybePackageJSON Package::getJSON(const char *const name)
 {
 	const auto packages = Package::packagesJSON();

@@ -44,6 +44,12 @@ public:
 	// check if package with given name exists
 	static bool packageExists(const char* const name);
 
+	// filter packages using given predicate
+	static std::vector<Package> filter(bool (*predicate)(Package& pkg));
+
+	// returns the first package matching the given predicate
+	static MaybePackage find(bool (*predicate)(Package& pkg));
+
 	// if given package exists, returns std::variant holding Package instance
 	static MaybePackage get(const char* const name);
 
