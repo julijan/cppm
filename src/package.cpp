@@ -237,8 +237,7 @@ MaybePackage Package::find(bool (*predicate)(Package &pkg))
 
 	if (found != packages.end()) {
 		// not found
-		const char* notFound = nullptr;
-		return MaybePackage(notFound);
+		return PackageNotFound();
 	}
 
 	return *found;
@@ -254,8 +253,7 @@ MaybePackageJSON Package::getJSON(const char *const name)
 		}
 	}
 
-	const char* notFound = nullptr;
-	return MaybePackageJSON(notFound);
+	return PackageNotFound();
 }
 
 std::vector<std::string> Package::dependencyNames(const char *const name)
@@ -311,8 +309,7 @@ MaybePackage Package::get(const char *const name)
 		return Package::fromJSON(std::get<PackageJSON>(packageJSON));
 	}
 
-	const char* notFound = nullptr;
-	return MaybePackage(notFound);
+	return PackageNotFound();
 }
 
 std::string Package::typeToString(PackageType t) {

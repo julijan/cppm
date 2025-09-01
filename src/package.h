@@ -8,9 +8,10 @@
 class Package;
 
 using PackageJSON = boost::json::object;
+using PackageNotFound = const char*;
 
-using MaybePackage = std::variant<Package, const char*>;
-using MaybePackageJSON = std::variant<PackageJSON, const char*>;
+using MaybePackage = std::variant<Package, PackageNotFound>;
+using MaybePackageJSON = std::variant<PackageJSON, PackageNotFound>;
 
 class Package : public PackageData {
 public:
