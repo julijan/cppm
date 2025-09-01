@@ -1,15 +1,26 @@
 #include <iostream>
 #include <cstring>
 #include <algorithm>
+#include <filesystem>
 
 #include "package.h"
 #include "core.h"
 
 
 int main(int argc, const char* argv[]) {
-	
+
 	// make sure app dir and necessary files are created
 	Core::initDirectory();
+
+	// get active package
+	const MaybePackage package = Package::includesPath(utils::fs::currentPath());
+
+	// true if current path is within one of the packages
+	const bool isPackage = std::holds_alternative<Package>(package);
+
+	const std::string currentPackageName = isPackage ? std::get<Package>(package).name : "none";
+
+	std::cout << currentPackageName << std::endl;
 
 	if (argc == 1) {
 		// called with no arguments
@@ -22,6 +33,11 @@ int main(int argc, const char* argv[]) {
 
 	if (strcmp(command, "init") == 0) {
 		// initialize a c++ project (managed package)
+		if (isPackage) {
+			// disallow creating a package within existing package
+			std::cerr << "Can't create a package within a package. Current package is " << currentPackageName << std::endl;
+			return 0;
+		}
 		Package::create(argv[2]);
 		return 0;
 	}
