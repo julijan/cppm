@@ -300,6 +300,22 @@ std::vector<Package> Package::getDependencies(const char *const name)
 	return std::vector<Package>();
 }
 
+MaybePackage Package::includesPath(std::filesystem::path p)
+{
+	const std::string pathString = p.string();
+	return Package::find([pathString](Package& pkg) {
+		return pathString.starts_with(pkg.path);
+	});
+}
+
+MaybePackage Package::inPath(std::filesystem::path p)
+{
+	const std::string pathString = p.string();
+	return Package::find([pathString](Package& pkg) {
+		return pkg.path == pathString;
+	});
+}
+
 MaybePackage Package::get(const char *const name)
 {
 	return Package::find([name](Package pkg) {

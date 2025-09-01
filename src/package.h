@@ -64,6 +64,13 @@ public:
 	// return package dependencies
 	static std::vector<Package> getDependencies(const char* const name);
 
+	// returns project in given path, or path containing given path
+	// for example, project in /a will be returned by path /a or /a/b or /a/b/c but wont by /b/c
+	static MaybePackage includesPath(std::filesystem::path p);
+
+	// returns project in given path
+	static MaybePackage inPath(std::filesystem::path p);
+
 	// convert from enum PackageType to string
 	static std::string typeToString(PackageType t);
 
