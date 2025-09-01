@@ -231,9 +231,9 @@ MaybePackage Package::get(const char *const name)
 {
 	const MaybePackageJSON packageJSON = Package::getJSON(name);
 
-	if (std::holds_alternative<boost::json::object>(packageJSON)) {
+	if (std::holds_alternative<PackageJSON>(packageJSON)) {
 		// found, return as Package instance
-		return Package::fromJSON(std::get<boost::json::object>(packageJSON));
+		return Package::fromJSON(std::get<PackageJSON>(packageJSON));
 	}
 
 	const char* notFound = nullptr;
@@ -268,7 +268,7 @@ PackageType Package::typeFromString(const char *const t)
 	return PackageType::ConsoleApp;
 }
 
-Package Package::fromJSON(boost::json::value data)
+Package Package::fromJSON(PackageJSON data)
 {
 	const auto linkableObjectsRaw = data.at("linkableObjects").as_array();
 	const auto dependenciesRaw = data.at("dependencies").as_array();
@@ -297,7 +297,7 @@ Package Package::fromJSON(boost::json::value data)
 	);
 }
 
-boost::json::object Package::toJSON(Package &pkg)
+PackageJSON Package::toJSON(Package &pkg)
 {
 	boost::json::array linkable;
 
@@ -311,7 +311,7 @@ boost::json::object Package::toJSON(Package &pkg)
 		dependencies.push_back(boost::json::string(item));
 	}
 
-	boost::json::object json;
+	PackageJSON json;
 	json["name"] = pkg.name;
 	json["path"] = pkg.path;
 	json["type"] = Package::typeToString(pkg.type);

@@ -7,8 +7,10 @@
 
 class Package;
 
+using PackageJSON = boost::json::object;
+
 using MaybePackage = std::variant<Package, const char*>;
-using MaybePackageJSON = std::variant<boost::json::object, const char*>;
+using MaybePackageJSON = std::variant<PackageJSON, const char*>;
 
 class Package : public PackageData {
 public:
@@ -45,7 +47,7 @@ public:
 	// if given package exists, returns std::variant holding Package instance
 	static MaybePackage get(const char* const name);
 
-	// if given package exists, returns std::variant holding boost::json::object
+	// if given package exists, returns std::variant holding PackageJSON
 	static MaybePackageJSON getJSON(const char* const name);
 
 	// return package dependencies
@@ -57,11 +59,11 @@ public:
 	// convert string to enum PackageType
 	static PackageType typeFromString(const char* const t);
 
-	// given a boost::json::object returns instance of Package
-	static Package fromJSON(boost::json::object data);
+	// given a PackageJSON returns instance of Package
+	static Package fromJSON(PackageJSON data);
 
-	// given a Package instance returns boost::json::object
-	static boost::json::object toJSON(Package& pkg);
+	// given a Package instance returns PackageJSON
+	static PackageJSON toJSON(Package& pkg);
 private:
 	// prompt user to select a package type
 	static std::string promptType();
