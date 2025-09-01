@@ -4,7 +4,7 @@
 #include "boost/json.hpp"
 #include "types.h"
 
-class Package : PackageData {
+class Package : public PackageData {
 public:
 	Package(
 		std::string name,
