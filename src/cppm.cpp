@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstring>
+#include <algorithm>
 
 #include "package.h"
 #include "core.h"
@@ -27,6 +28,16 @@ int main(int argc, const char* argv[]) {
 
 	if (strcmp(command, "list") == 0 || strcmp(command, "ls") == 0) {
 		// list packages
+		std::vector<Package> packages = Package::packages();
+		std::sort(packages.begin(), packages.end(), [](auto a, auto b) {
+			int aVal = a.managed ? 1 : 0;
+			int bVal = b.managed ? 1 : 0;
+			return aVal > bVal;
+		});
+		for (auto package: packages) {
+			std::cout << package.name << std::endl;
+		}
+		return 0;
 	}
 
 	if (strcmp(command, "include") == 0) {
