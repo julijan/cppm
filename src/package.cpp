@@ -109,9 +109,6 @@ void Package::create(const char *const name)
 
 	// create premake5.lua
 	Package::generatePremake(pkg);
-
-	// cd to project dir
-	utils::system::runCommand(utils::string::replaceAll("cd %s", "%s", projectDir.c_str()));
 }
 
 void Package::registerPackage(const std::filesystem::path& p) {
