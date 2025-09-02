@@ -300,6 +300,63 @@ std::vector<Package> Package::getDependencies(const char *const name)
 	return std::vector<Package>();
 }
 
+void Package::addDependency(Package &pkg, Package &dep)
+{
+	if (Package::isDependency(pkg, dep)) {
+		std::cerr << dep.name << " already a dependecy of " << pkg.name << std::endl;
+		return;
+	}
+
+
+	// add dependency and update registry
+	pkg.dependencies.push_back(dep.name);
+	Package::updateRegistry(pkg);
+
+	// create symbolic link in /includes
+	std::filesystem::path pkgPath = pkg.path;
+	std::filesystem::path includesPath = std::filesystem::path(pkgPath).append("includes");
+	std::filesystem::path symlinkPath = std::filesystem::path(includesPath).append(dep.name);
+
+	std::filesystem::path symlinkTarget = dep.path;
+	
+	std::filesystem::create_directory_symlink(symlinkTarget, symlinkPath);
+}
+
+void Package::addDependency(Package &pkg, const char *const name)
+{
+	MaybePackage dependency = Package::get(name);
+	if (std::holds_alternative<PackageNotFound>(dependency)) {
+		std::cerr << "Package " << name << " does not exist" << std::endl;
+		return;
+	}
+
+	Package::addDependency(pkg, std::get<Package>(dependency));
+}
+
+bool Package::isDependency(Package &pkg, const char *const depName)
+{
+	auto it = std::find_if(pkg.dependencies.begin(), pkg.dependencies.end(), [depName](std::string existingDep) {
+		return existingDep == depName;
+	});
+
+	return it != pkg.dependencies.end();
+}
+
+bool Package::isDependency(Package &pkg, Package &dep)
+{
+	return Package::isDependency(pkg, dep.name.c_str());
+}
+
+bool Package::isDependency(const char *const pkgName, const char *const depName)
+{
+	MaybePackage pkg = Package::get(pkgName);
+	if (std::holds_alternative<PackageNotFound>(pkg)) {
+		return false;
+	}
+
+	return Package::isDependency(std::get<Package>(pkg), depName);
+}
+
 MaybePackage Package::includesPath(std::filesystem::path p)
 {
 	const std::string pathString = p.string();
@@ -323,6 +380,25 @@ MaybePackage Package::get(const char *const name)
 	});
 }
 
+void Package::updateRegistry(Package &pkg)
+{
+	auto packages = Package::packagesJSON();
+
+	unsigned int index = 0;
+	for (auto package: packages) {
+		if (package.at("name").as_string() == pkg.name) {
+			// found the package to be updated, replace
+			packages[index] = Package::toJSON(pkg);
+			Core::writeRegistry(packages);
+			return;
+		}
+		index++;
+	}
+
+	// if we got here it means package was not found in the registry
+	std::cerr << "Can't update package registry, package " << pkg.name << " not registered" << std::endl;
+}
+
 std::string Package::typeToString(PackageType t) {
 	switch (t) {
 		case PackageType::ConsoleApp: return "ConsoleApp";
@@ -333,13 +409,8 @@ std::string Package::typeToString(PackageType t) {
 	return "";
 }
 
-void Package::display(Package& pkg)
+void Package::listDependencies(Package &pkg)
 {
-	std::cout << "Package name: " << pkg.name << std::endl;
-	std::cout << "Version: " << pkg.version << std::endl;
-	std::cout << "Type: " << Package::typeToString(pkg.type) << std::endl;
-	std::cout << "Path: " << pkg.path << std::endl;
-
 	if (pkg.dependencies.size() == 0) {
 		std::cout << "No dependencies" << std::endl;
 	} else {
@@ -348,6 +419,16 @@ void Package::display(Package& pkg)
 			std::cout << "|- " << depName << std::endl;
 		}
 	}
+}
+
+void Package::display(Package& pkg)
+{
+	std::cout << "Package name: " << pkg.name << std::endl;
+	std::cout << "Version: " << pkg.version << std::endl;
+	std::cout << "Type: " << Package::typeToString(pkg.type) << std::endl;
+	std::cout << "Path: " << pkg.path << std::endl;
+
+	Package::listDependencies(pkg);
 
 	if ((pkg.type == PackageType::StaticLib || pkg.type == PackageType::SharedLib) && pkg.linkableObjects.size() > 0) {
 		// show linkable objects

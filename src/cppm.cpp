@@ -75,7 +75,35 @@ int main(int argc, const char* argv[]) {
 	}
 
 	if (strcmp(command, "include") == 0) {
-		// include file or remote package or list dependencies if no arguments provided
+		// include package or remote package or list dependencies if no arguments provided
+		if (argc == 2) {
+			// no arguments provided
+			// if within a package, list dependencies
+
+			if (!isPackage) {
+				std::cout << "Invalid use of include command. Try cppm help include." << std::endl;
+				return 0;
+			}
+
+			Package pkg = std::get<Package>(package);
+			Package::listDependencies(pkg);
+			return 0;
+		}
+
+		// add listed package(s) as dependency of current package
+		if (!isPackage) {
+			std::cerr << "To include a package as a dependency, you must be within an existing package" << std::endl;
+			return 0;
+		}
+		
+		Package pkg = std::get<Package>(package);
+
+		for (int i = 2; i < argc; i++) {
+			Package::addDependency(pkg, argv[i]);
+			std::cout << argv[2] << " added as a dependecy of " << pkg.name << std::endl;
+		}
+
+		return 0;
 	}
 
 	if (strcmp(command, "packages") == 0) {

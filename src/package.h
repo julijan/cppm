@@ -55,6 +55,9 @@ public:
 	// if given package exists, returns std::variant holding Package instance
 	static MaybePackage get(const char* const name);
 
+	// update given package in registry
+	static void updateRegistry(Package& pkg);
+
 	// if given package exists, returns std::variant holding PackageJSON
 	static MaybePackageJSON getJSON(const char* const name);
 
@@ -63,6 +66,21 @@ public:
 
 	// return package dependencies
 	static std::vector<Package> getDependencies(const char* const name);
+
+	// add dep as dependency of pkg
+	static void addDependency(Package& pkg, Package& dep);
+
+	// add name as dependency of given Package
+	static void addDependency(Package& pkg, const char* const name);
+
+	// check if depName is a dependency of pkg
+	static bool isDependency(Package&pkg, const char* const depName);
+
+	// check if dep is a dependency of pkg
+	static bool isDependency(Package&pkg, Package& dep);
+
+	// check if depName is a dependency of pkgName
+	static bool isDependency(const char* const pkgName, const char* const depName);
 
 	// returns project in given path, or path containing given path
 	// for example, project in /a will be returned by path /a or /a/b or /a/b/c but wont by /b/c
@@ -73,6 +91,9 @@ public:
 
 	// convert from enum PackageType to string
 	static std::string typeToString(PackageType t);
+
+	// list dependencies of given Package
+	static void listDependencies(Package& pkg);
 
 	// display package details given Package instance
 	static void display(Package& pkg);
