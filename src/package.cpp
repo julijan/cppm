@@ -106,6 +106,24 @@ void Package::create(const char *const name)
 	// store to registry
 	Package::addToRegistry(pkg);
 
+	// create hello world entry point
+	std::string helloWorldFileName = pkg.name + ".cpp";
+	std::ofstream fs(std::filesystem::path(projectDir).append("src").append(helloWorldFileName));
+
+	if (fs.is_open()) {
+		// no need to fail here if failed to open
+		// hello world is not required, just a convenience
+		fs << R"(#include <iostream>
+
+		int main() {
+			std::cout << "Hello, world!" << std::endl;
+			return 0;
+		})";
+
+		fs.flush();
+		fs.close();
+	}
+
 	// create premake5.lua
 	Package::generatePremake(pkg);
 }
