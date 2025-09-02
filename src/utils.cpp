@@ -3,6 +3,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <chrono>
 
 #include "utils.h"
@@ -104,6 +105,44 @@ namespace utils {
 			return "C:\\Users\\" + user() + "\\Local";
 		}
 
+	}
+
+	namespace json {
+		void write(const std::filesystem::path& file, const boost::json::value& json)
+		{
+			std::ofstream fh(file);
+			if (!fh.is_open()) {
+				std::cerr << "Error initializing package registry" << std::endl;
+				return;
+			}
+			fh << json;
+
+			fh.flush();
+			fh.close();
+		}
+
+		boost::json::value read(const std::filesystem::path &file)
+		{
+			if (!std::filesystem::exists(file)) {
+				return boost::json::value();
+			}
+
+			boost::json::stream_parser parser;
+			std::fstream stream(file);
+
+			if (!stream.is_open()) {
+				std::cerr << "Error opening JSON file for reading" << std::endl;
+				return boost::json::array();
+			}
+
+			std::string line;
+			while (std::getline(stream, line)) {
+				parser.write(line);
+			}
+			parser.finish();
+
+			return parser.release();
+		}
 	}
 
 	namespace time {

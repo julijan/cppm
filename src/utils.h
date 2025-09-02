@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "boost/json.hpp"
 #include "types.h"
 
 namespace utils {
@@ -41,6 +42,11 @@ namespace utils {
 		std::string user();
 
 		std::string appDataDir();
+	}
+
+	namespace json {
+		void write(const std::filesystem::path& file, const boost::json::value& json);
+		boost::json::value read(const std::filesystem::path& file);
 	}
 
 	namespace time {
