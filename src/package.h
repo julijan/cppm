@@ -115,6 +115,9 @@ public:
 	// generate premake5.lua for given Package
 	static void generatePremake(Package& pkg);
 
+	// generate VSC (Visual Studio Code) configuration for given package
+	static void generateVSC(Package& pkg);
+
 	// returns project in given path, or path containing given path
 	// for example, project in /a will be returned by path /a or /a/b or /a/b/c but wont by /b/c
 	static MaybePackage includesPath(std::filesystem::path p);

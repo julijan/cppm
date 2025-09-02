@@ -174,6 +174,41 @@ int main(int argc, const char* argv[]) {
 		return 0;
 	}
 
+	if (strcmp(command, "vsc") == 0) {
+		// generate .vscode/c_cpp_properties.json
+		if (argc == 2) {
+			// no arguments provided, initialize in current project
+			if (!isPackage) {
+				std::cerr << "Must be executed in a package directory or provided package name(s)" << std::endl;
+				return 0;
+			}
+
+			// initialize in current package
+			Package pkg = std::get<Package>(package);
+			Package::generateVSC(pkg);
+			return 0;
+		}
+
+		// initialize for all listed packages
+		for (int i = 2; i < argc; i++) {
+			MaybePackage pkgMaybe = Package::get(argv[i]);
+			if (std::holds_alternative<PackageNotFound>(pkgMaybe)) {
+				std::cerr << "Package " << argv[i] << " not found, skipping";
+				continue;
+			}
+
+			Package& pkg = std::get<Package>(pkgMaybe);
+			if (!pkg.managed) {
+				std::cerr << "Package " << pkg.name << " is not a managed package, skipping";
+				continue;
+			}
+
+			Package::generateVSC(pkg);
+		}
+
+		return 0;
+	}
+
 	if (strcmp(command, "verify") == 0) {
 		// verify package(s) making sure they exist and conform to registry
 		// no arguments: verify current package

@@ -283,21 +283,7 @@ boost::json::array Package::packagesJSON()
 	}
 
 	// read packages from registry
-	boost::json::stream_parser parser;
-	std::fstream stream(registryPath);
-
-	if (!stream.is_open()) {
-		std::cerr << "Error opening registry file" << std::endl;
-		return boost::json::array();
-	}
-
-	std::string line;
-	while (std::getline(stream, line)) {
-		parser.write(line);
-	}
-	parser.finish();
-
-	return parser.release().as_array();
+	return utils::json::read(registryPath).as_array();
 }
 
 bool Package::packageExists(const char *const name)
@@ -651,6 +637,51 @@ MaybePackage Package::includesPath(std::filesystem::path p)
 	});
 }
 
+void Package::generateVSC(Package &pkg)
+{
+	boost::json::object root;
+	boost::json::array configurations;
+	boost::json::object configuration;
+	boost::json::array includePaths;
+
+	// allow includes from current project
+	includePaths.push_back("${workspaceFolder}/**");
+
+	// allow includes from dependency directories
+	for (std::string& depName: pkg.dependencies) {
+		MaybePackage depMaybe = Package::get(depName.c_str());
+		if (std::holds_alternative<PackageNotFound>(depMaybe)) {
+			std::cerr << "Missing dependency " << depName << " skipped" << std::endl;
+			continue;
+		}
+
+		std::string depIncludePath = std::get<Package>(depMaybe).path + "/**";
+		includePaths.push_back(depIncludePath.c_str());
+	}
+
+	configuration["name"] = pkg.name;
+	configuration["includePath"] = includePaths;
+	configuration["defines"] = boost::json::array({});
+	configuration["cppStandard"] = "c++20";
+
+	configurations.push_back(configuration);
+
+	root["configurations"] = configurations;
+	root["version"] = 4;
+
+	std::filesystem::path vscDir = std::filesystem::path(pkg.path).append(".vscode");
+
+	if (!std::filesystem::exists(vscDir)) {
+		std::filesystem::create_directory(vscDir);
+	}
+
+	std::filesystem::path configPath = std::filesystem::path(vscDir).append("c_cpp_properties.json");
+
+	utils::json::write(configPath, root);
+
+	std::cout << "Generated VSC configuration " << configPath.string() << std::endl;
+}
+
 MaybePackage Package::inPath(std::filesystem::path p)
 {
 	const std::string pathString = p.string();
@@ -668,13 +699,8 @@ MaybePackage Package::get(const char *const name)
 
 void Package::writeRegistry(const boost::json::value &json)
 {
-	std::ofstream fh(Core::filePath("registry.json"));
-	if (!fh.is_open()) {
-		std::cerr << "Error initializing package registry" << std::endl;
-		return;
-	}
-	
-	fh << json;
+	std::filesystem::path path = Core::filePath("registry.json");
+	utils::json::write(path, json);
 }
 
 void Package::initRegistry() {
