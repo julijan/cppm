@@ -72,7 +72,6 @@ void Package::create(const char *const name)
 	// define created subdirectories
 	const char* const paths[] = {
 		"src",
-		"header",
 		"includes"
 	};
 
