@@ -3,7 +3,6 @@
 #include <filesystem>
 #include <string>
 #include "utils.h"
-#include "package.h"
 
 struct Command {
 	std::string name;
@@ -20,10 +19,6 @@ public:
 	static void initDirectory();
 	
 	static std::filesystem::path filePath(const char* const fileName);
-	
-	static void writeRegistry(const boost::json::value& json);
-
-	static void initRegistry();
 	
 	static void printHelp(const char* command = nullptr);
 

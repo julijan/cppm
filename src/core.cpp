@@ -14,7 +14,7 @@ void Core::initDirectory()
 {
 	if (!Core::directoryExists()) {
 		utils::fs::mkdir(Core::path());
-		Core::initRegistry();
+		Package::initRegistry();
 	}
 }
 
@@ -25,22 +25,6 @@ bool Core::directoryExists()
 
 std::filesystem::path Core::filePath(const char* const fileName) {
 	return std::filesystem::path(Core::path()).append(fileName);
-}
-
-void Core::writeRegistry(const boost::json::value &json)
-{
-	std::ofstream fh(Core::filePath("registry.json"));
-	if (!fh.is_open()) {
-		std::cerr << "Error initializing package registry" << std::endl;
-		return;
-	}
-	
-	fh << json;
-}
-
-void Core::initRegistry() {
-	boost::json::array registry = {};
-	Core::writeRegistry(registry);
 }
 
 void Core::printHelp(const char* command)

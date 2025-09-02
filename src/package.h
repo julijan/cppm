@@ -55,6 +55,12 @@ public:
 	// if given package exists, returns std::variant holding Package instance
 	static MaybePackage get(const char* const name);
 
+	// write JSON to package registry
+	static void writeRegistry(const boost::json::value& json);
+
+	// initialize registry with an empty array
+	static void initRegistry();
+
 	// update given package in registry
 	static void updateRegistry(Package& pkg);
 

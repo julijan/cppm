@@ -422,6 +422,22 @@ MaybePackage Package::get(const char *const name)
 	});
 }
 
+void Package::writeRegistry(const boost::json::value &json)
+{
+	std::ofstream fh(Core::filePath("registry.json"));
+	if (!fh.is_open()) {
+		std::cerr << "Error initializing package registry" << std::endl;
+		return;
+	}
+	
+	fh << json;
+}
+
+void Package::initRegistry() {
+	boost::json::array registry = {};
+	Package::writeRegistry(registry);
+}
+
 void Package::updateRegistry(Package &pkg)
 {
 	auto packages = Package::packagesJSON();
@@ -431,7 +447,7 @@ void Package::updateRegistry(Package &pkg)
 		if (package.at("name").as_string() == pkg.name) {
 			// found the package to be updated, replace
 			packages[index] = Package::toJSON(pkg);
-			Core::writeRegistry(packages);
+			Package::writeRegistry(packages);
 			return;
 		}
 		index++;
