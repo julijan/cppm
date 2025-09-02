@@ -55,6 +55,9 @@ public:
 	// if given package exists, returns std::variant holding Package instance
 	static MaybePackage get(const char* const name);
 
+	// if given package exists, returns std::variant holding PackageJSON
+	static MaybePackageJSON getJSON(const char* const name);
+
 	// write JSON to package registry
 	static void writeRegistry(const boost::json::value& json);
 
@@ -63,9 +66,6 @@ public:
 
 	// update given package in registry
 	static void updateRegistry(Package& pkg);
-
-	// if given package exists, returns std::variant holding PackageJSON
-	static MaybePackageJSON getJSON(const char* const name);
 
 	// return package dependency names
 	static std::vector<std::string> dependencyNames(const char* const name);
@@ -93,6 +93,12 @@ public:
 
 	// check if depName is a dependency of pkgName
 	static bool isDependency(const char* const pkgName, const char* const depName);
+
+	// true if StaticLib or SharedLib
+	static bool isLibrary(Package& pkg);
+
+	// generate premake5.lua for given Package
+	static void generatePremake(Package& pkg);
 
 	// returns project in given path, or path containing given path
 	// for example, project in /a will be returned by path /a or /a/b or /a/b/c but wont by /b/c

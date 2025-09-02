@@ -8,7 +8,6 @@
 
 #include "package.h"
 #include "utils.h"
-#include "templates.h"
 #include "boost/json.hpp"
 #include "core.h"
 
@@ -91,19 +90,6 @@ void Package::create(const char *const name)
 	// select project type
 	std::string pType = Package::promptType();
 
-	// create premake5.lua
-	std::string premakeFinal = utils::string::replaceAll(Templates::PREMAKE, "${projectName}", name);
-	premakeFinal = utils::string::replaceAll(premakeFinal, "${projectType}", pType.c_str());
-
-	const std::filesystem::path premakeFilePath = std::filesystem::path(projectDir).append("premake5.lua");
-	std::ofstream fh(premakeFilePath);
-	if (fh.is_open()) {
-		fh << premakeFinal;
-		fh.close();
-	} else {
-		std::cerr << "Error creating premake5.lua";
-	}
-
 	// init a git repository
 	std::string gitInitCommand = utils::string::replaceAll("git init -q %s", "%s", projectDir.c_str());
 	if (utils::system::runCommand(gitInitCommand) == 0) {
@@ -126,7 +112,8 @@ void Package::create(const char *const name)
 		fs << packages;
 	}
 
-	pkg.name = name;
+	// create premake5.lua
+	Package::generatePremake(pkg);
 
 	// cd to project dir
 	utils::system::runCommand(utils::string::replaceAll("cd %s", "%s", projectDir.c_str()));
@@ -397,6 +384,133 @@ bool Package::isDependency(const char *const pkgName, const char *const depName)
 	}
 
 	return Package::isDependency(std::get<Package>(pkg), depName);
+}
+
+bool Package::isLibrary(Package &pkg)
+{
+	return pkg.type == PackageType::StaticLib || pkg.type == PackageType::SharedLib;
+}
+
+void Package::generatePremake(Package &pkg)
+{
+	std::filesystem::path premakePath = std::filesystem::path(pkg.path).append("premake5.lua");
+	std::ofstream fstream(premakePath);
+
+	if (!fstream.is_open()) {
+		std::cerr << "Could not open premake file for writing, path: " << premakePath.string() << std::endl;
+		return;
+	}
+
+	// workspace
+	fstream << "workspace \"" << pkg.name << '"' << std::endl; //variable
+	fstream << "\tconfigurations { \"Debug\", \"Release\" }" << std::endl << std::endl;
+
+	// project
+	fstream << "project \"" << pkg.name << '"' << std::endl; // variable
+	fstream << "\tlanguage \"C++\"" << std::endl;
+	fstream << "\tkind \"" << Package::typeToString(pkg.type) << '"' << std::endl; // variable
+	fstream << "\tcppdialect \"C++20\"" << std::endl;
+	fstream << "\tarchitecture \"x64\"" << std::endl;
+	fstream << "\ttargetdir \"bin/%{cfg.buildcfg}\"" << std::endl;
+	fstream << "\tfiles { \"./src/**.h\", \"./src/**.cpp\" }" << std::endl;
+	fstream << "\tincludedirs { \"./includes\" }" << std::endl;
+
+	if (pkg.dependencies.size() > 0) {
+		// link libraries
+
+		// collect all linked objects in a vector
+		std::vector<std::string> linked;
+
+		for (std::string& depName: pkg.dependencies) {
+			MaybePackage dependency = Package::get(depName.c_str());
+			if (std::holds_alternative<PackageNotFound>(dependency)) {
+				// missing dependency!
+				std::cerr << "Missing dependency " << depName << ", resuming" << std::endl;
+				continue;
+			}
+
+			Package dependencyPkg = std::get<Package>(dependency);
+
+			if (!Package::isLibrary(dependencyPkg)) {
+				// not a library
+				// what is it then? Probably should not be a dependency in the first place
+				// skip
+				continue;
+			}
+			
+			if (dependencyPkg.linkableObjects.size() > 0) {
+				// has linkable objects, include them
+				for (std::string link: dependencyPkg.linkableObjects) {
+					linked.push_back(link);
+				}
+			} else {
+				// no linkable objects, this could mean the registry is out of date or library was never built
+				// assume package name
+				linked.push_back(dependencyPkg.name);
+			}
+		}
+
+		if (linked.size() > 0) {
+			// include links in premake
+			fstream << "\tlinks {" << std::endl;
+
+			for (std::string& link: linked) {
+				fstream << "\t\t\"" << link  << '"' << std::endl;
+			}
+
+			fstream << "\t}";
+		}
+	}
+
+	// filters
+	fstream << "\tfilter \"configurations:Debug\"" << std::endl;
+	fstream << "\t\tdefines { \"DEBUG\" }" << std::endl;
+	fstream << "\t\tsymbols \"On\"" << std::endl;
+
+	fstream << "\tfilter \"configurations:Release\"" << std::endl;
+	fstream << "\t\tdefines { \"NDEBUG\" }" << std::endl;
+	fstream << "\t\toptimize \"On\"" << std::endl;
+
+	// project test
+	fstream << '\n';
+	fstream << "project \"" << pkg.name << "Test\"" << std::endl; // variable
+	fstream << "\tlanguage \"C++\"" << std::endl;
+	fstream << "\tkind \"ConsoleApp\"" << std::endl;
+	fstream << "\tcppdialect \"C++20\"" << std::endl;
+	fstream << "\tarchitecture \"x64\"" << std::endl;
+	fstream << "\ttargetdir \"tests/%{cfg.buildcfg}\"" << std::endl;
+	fstream << "\tfiles { \"./src/test.cpp\" }" << std::endl;
+	fstream << "\tincludedirs { \"./src\", \"./includes\" }" << std::endl;
+
+	if (Package::isLibrary(pkg)) {
+		// link package itself to test, if pkg is a library
+		fstream << "\tlinks {" << std::endl;
+		
+		if (pkg.linkableObjects.size() > 0) {
+			for (std::string link: pkg.linkableObjects) {
+				fstream << "\t\t\"" << link << '"';
+			}
+			fstream << "\t}" << std::endl;
+		} else {
+			// pkg is a library with no linkableObjects
+			// assume pkg.name
+			fstream << " \"" << pkg.name << " \"" << std::endl;
+		}
+
+	}
+
+	// filters
+	fstream << "\tfilter \"configurations:Debug\"" << std::endl;
+	fstream << "\t\tdefines { \"DEBUG\" }" << std::endl;
+	fstream << "\t\tsymbols \"On\"" << std::endl;
+
+	fstream << "\tfilter \"configurations:Release\"" << std::endl;
+	fstream << "\t\tdefines { \"NDEBUG\" }" << std::endl;
+	fstream << "\t\toptimize \"On\"" << std::endl;
+
+	// done, flush and close
+	fstream.flush();
+	fstream.close();
 }
 
 MaybePackage Package::includesPath(std::filesystem::path p)
