@@ -33,6 +33,26 @@ namespace utils {
 			std::string s(str);
 			return replaceAll(s, needle, replaceWith);
 		}
+
+		std::string trim(std::string& str) {
+			std::string out = "";
+
+			int start = 0;
+			int end = 0;
+			for (int i = 0; i < str.length(); i++) {
+				if (str[i] == ' ' || str[i] == '\n' || str[i] == '\t') {continue;}
+				start = i;
+			}
+			
+			for (int i = str.length() - 1; i > -1; i--) {
+				if (str[i] == ' ' || str[i] == '\n' || str[i] == '\t') {continue;}
+				end = i;
+			}
+
+			if (start == end) {return out;}
+
+			return str.substr(start, end);
+		}
 	}
 
 	namespace fs {

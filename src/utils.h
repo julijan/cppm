@@ -18,6 +18,7 @@ namespace utils {
 			const char* replaceWith
 		);
 
+		std::string trim(std::string& str);
 	}
 
 	namespace fs {
