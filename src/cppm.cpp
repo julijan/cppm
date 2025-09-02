@@ -12,8 +12,10 @@ int main(int argc, const char* argv[]) {
 	// make sure app dir and necessary files are created
 	Core::initDirectory();
 
+	const std::filesystem::path path = utils::fs::currentPath();
+
 	// get active package
-	const MaybePackage package = Package::includesPath(utils::fs::currentPath());
+	const MaybePackage package = Package::includesPath(path);
 
 	// true if current path is within one of the packages
 	const bool isPackage = std::holds_alternative<Package>(package);
@@ -145,7 +147,13 @@ int main(int argc, const char* argv[]) {
 	}
 
 	if (strcmp(command, "register") == 0) {
-		// register current path as a package
+		// register current path as a non-managed package
+		Package::registerPackage(path);
+		return 0;
+	}
+
+	if (strcmp(command, "unregister") == 0) {
+		// unregister provided package name, if omiitted unregister the current path as a package
 	}
 
 	if (strcmp(command, "verify") == 0) {
@@ -153,10 +161,6 @@ int main(int argc, const char* argv[]) {
 		// no arguments: verify current package
 		// --all: verify all packages
 		// package list: verify listed packages
-	}
-
-	if (strcmp(command, "unregister") == 0) {
-		// unregister provided package name, if omiitted unregister the current path as a package
 	}
 
 	if (strcmp(command, "refresh") == 0) {

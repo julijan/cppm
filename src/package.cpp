@@ -88,7 +88,7 @@ void Package::create(const char *const name)
 	}
 
 	// select project type
-	std::string pType = Package::promptType();
+	std::string pType = Package::promptType(false);
 
 	// init a git repository
 	std::string gitInitCommand = utils::string::replaceAll("git init -q %s", "%s", projectDir.c_str());
@@ -112,36 +112,94 @@ void Package::create(const char *const name)
 
 	// cd to project dir
 	utils::system::runCommand(utils::string::replaceAll("cd %s", "%s", projectDir.c_str()));
-};
+}
 
-std::string Package::promptType() {
+void Package::registerPackage(const std::filesystem::path& p) {
+	// make sure a package in this path is not already registered
+	MaybePackage existing = Package::includesPath(p);
+	
+	if (std::holds_alternative<Package>(existing)) {
+		Package existingPkg = std::get<Package>(existing);
+		std::cerr << existingPkg.name << " already registered at path " << existingPkg.path << std::endl;
+		return;
+	}
+
+	// no existing package in the path, ok to register
+	// assume package name = current directory name
+	// if package with such name exists, append it with attempt number
+	std::string assumedName = p.filename().string();
+
+	if (Package::packageExists(assumedName.c_str())) {
+		int attempt = 1;
+		while (true) {
+			std::string attemptedName = assumedName + std::to_string(attempt);
+			if (!Package::packageExists(attemptedName.c_str())) {
+				// found an available name
+				assumedName = attemptedName;
+				break;
+			}
+			attempt++;
+		}
+	}
+
+	std::cout << "Registering current path as a package with name " << assumedName << std::endl;
+	std::cout << "If you want to use a different name please enter it bellow and press enter, leave blank to use " << assumedName << std::endl;
+
+	// prompt for alternative name
+	std::string nameAlternative;
+	std::getline(std::cin, nameAlternative, '\n');
+
+	std::string nameFinal;
+
+	if (utils::string::trim(nameAlternative).length() > 0) {
+		// alternative name entered
+		nameFinal = utils::string::trim(nameAlternative);
+	} else {
+		nameFinal = assumedName;
+	}
+
+	PackageType pType = Package::typeFromString(Package::promptType(true).c_str());
+
+	Package pkg(
+		nameFinal,
+		p,
+		pType,
+		false
+	);
+
+	// register the package
+	Package::addToRegistry(pkg);
+
+	std::cout << "Package " << pkg.name << " registered" << std::endl;
+}
+
+std::string Package::promptType(bool expectLibrary) {
+	// if expectLibrary (only for non-managed projects), list is limited to library types
+	std::initializer_list<const char*> options = expectLibrary ?
+		std::initializer_list({ "StaticLib", "SharedLib" }) :
+		std::initializer_list({ "ConsoleApp", "WindowedApp", "StaticLib", "SharedLib" });
+
+	
+	// prompt user to select type
 	std::cout << "Select project type:" << std::endl;
-	std::cout << "1) ConsoleApp" << std::endl;
-	std::cout << "2) WindowedApp" << std::endl;
-	std::cout << "3) StaticLib" << std::endl;
-	std::cout << "4) SharedLib" << std::endl;
+	for (int i = 0; i < options.size(); i++) {
+		auto option = *(options.begin()+i);
+		std::cout << (i+1) << ") " << option << std::endl;
+	}
+
 	char pType;
 	std::cin >> pType;
 
-	if (pType == '1') {
-		return Package::typeToString(PackageType::ConsoleApp);
+	// cast user input to int
+	int optionIndex = pType - '0' - 1;
+
+	if (optionIndex < 0 || optionIndex > options.size() - 1) {
+		// invalid user input
+		std::cerr << "Please enter a value between 1 and 4" << std::endl;
+		return Package::promptType(expectLibrary);
 	}
 
-	if (pType == '2') {
-		return Package::typeToString(PackageType::WindowedApp);
-	}
-	
-	if (pType == '3') {
-		return Package::typeToString(PackageType::StaticLib);
-	}
-	
-	if (pType == '4') {
-		return Package::typeToString(PackageType::SharedLib);
-	}
-
-	std::cerr << "Please enter a value between 1 and 4" << std::endl;
-
-	return Package::promptType();
+	return *(options.begin() + optionIndex);
 }
 
 std::vector<Package> Package::packages() {

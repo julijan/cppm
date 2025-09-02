@@ -37,6 +37,9 @@ public:
 	// create a project (managed package)
 	static void create(const char* const name);
 
+	// registers given path as a non-managed package
+	static void registerPackage(const std::filesystem::path& p);
+
 	// return all registered packages
 	static std::vector<Package> packages();
 
@@ -131,5 +134,5 @@ public:
 	static PackageJSON toJSON(Package& pkg);
 private:
 	// prompt user to select a package type
-	static std::string promptType();
+	static std::string promptType(bool expectLibrary);
 };
