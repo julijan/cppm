@@ -74,6 +74,12 @@ public:
 	// convert from enum PackageType to string
 	static std::string typeToString(PackageType t);
 
+	// display package details given Package instance
+	static void display(Package& pkg);
+
+	// display package details given package name
+	static void display(const char* const name);
+
 	// convert string to enum PackageType
 	static PackageType typeFromString(const char* const t);
 

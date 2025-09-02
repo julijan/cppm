@@ -333,6 +333,43 @@ std::string Package::typeToString(PackageType t) {
 	return "";
 }
 
+void Package::display(Package& pkg)
+{
+	std::cout << "Package name: " << pkg.name << std::endl;
+	std::cout << "Version: " << pkg.version << std::endl;
+	std::cout << "Type: " << Package::typeToString(pkg.type) << std::endl;
+	std::cout << "Path: " << pkg.path << std::endl;
+
+	if (pkg.dependencies.size() == 0) {
+		std::cout << "No dependencies" << std::endl;
+	} else {
+		std::cout << "+ Dependencies:" << std::endl;
+		for (std::string& depName: pkg.dependencies) {
+			std::cout << "|- " << depName << std::endl;
+		}
+	}
+
+	if ((pkg.type == PackageType::StaticLib || pkg.type == PackageType::SharedLib) && pkg.linkableObjects.size() > 0) {
+		// show linkable objects
+		std::cout << "Linkable objects:" << std::endl;
+		for (std::string& objName: pkg.linkableObjects) {
+			std::cout << "|- " << objName << std::endl;
+		}
+	}
+}
+
+void Package::display(const char *const name)
+{
+	MaybePackage pkg = Package::get(name);
+
+	if (std::holds_alternative<PackageNotFound>(pkg)) {
+		std::cout << "Package " << name << " does not exist";
+		return;
+	}
+
+	Package::display(std::get<Package>(pkg));
+}
+
 PackageType Package::typeFromString(const char *const t)
 {
 	if (strcmp(t, "ConsoleApp") == 0) {
