@@ -25,5 +25,3 @@ struct PackageData {
 	bool managed;
 	int registeredAt;
 };
-
-using Registry = std::vector<PackageData>;

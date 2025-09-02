@@ -1,11 +1,6 @@
-#include <fstream>
-#include <iostream>
-#include <istream>
-#include <vector>
-#include "boost/json.hpp"
-
 #include "core.h"
 #include "package.h"
+#include "utils.h"
 
 std::filesystem::path Core::path() {
 	return utils::system::appDataDir() + std::filesystem::path::preferred_separator + ".cppm";

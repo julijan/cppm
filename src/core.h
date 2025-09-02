@@ -2,7 +2,6 @@
 
 #include <filesystem>
 #include <string>
-#include "utils.h"
 
 struct Command {
 	std::string name;

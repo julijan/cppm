@@ -5,7 +5,8 @@
 
 #include "package.h"
 #include "core.h"
-#include "./help.h"
+#include "help.h"
+#include "utils.h"
 
 
 int main(int argc, const char* argv[]) {
