@@ -4,6 +4,7 @@ workspace "cppm"
 project "cppm"
 	kind "ConsoleApp"
 	language "C++"
+	cppdialect "C++20"
 	architecture "x64"
 	targetdir "bin/%{cfg.buildcfg}"
 	includedirs { "/home/julijan/.vcpkg/installed/x64-linux/include" }
