@@ -209,6 +209,31 @@ int main(int argc, const char* argv[]) {
 		return 0;
 	}
 
+	if (strcmp(command, "build") == 0) {
+		// build package(s)
+		if (argc == 2) {
+			// no arguments provided, build current package
+			if (!isPackage) {
+				std::cerr << "Command build has be executed within a package, or provided a list of package names to build" << std::endl;
+				return 0;
+			}
+
+			const Package& pkg = std::get<Package>(package);
+			Package::build(pkg);
+		}
+
+		for (int i = 2; i < argc; i++) {
+			MaybePackage pkgMaybe = Package::get(argv[i]);
+			if (std::holds_alternative<PackageNotFound>(pkgMaybe)) {
+				std::cerr << "Package " << argv[i] << " not found, skipped" << std::endl;
+				continue;
+			}
+
+			const Package& pkg = std::get<Package>(pkgMaybe);
+			Package::build(pkg);
+		}
+	}
+
 	if (strcmp(command, "verify") == 0) {
 		// verify package(s) making sure they exist and conform to registry
 		// no arguments: verify current package
@@ -218,10 +243,6 @@ int main(int argc, const char* argv[]) {
 
 	if (strcmp(command, "refresh") == 0) {
 		// refresh given package, look for linkable objects
-	}
-
-	if (strcmp(command, "build") == 0) {
-		// build the project
 	}
 
 	if (strcmp(command, "version") == 0) {

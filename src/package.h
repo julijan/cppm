@@ -109,6 +109,9 @@ public:
 	// returns packages that depend on given package
 	static std::vector<Package> dependents(const char* const name);
 
+	// build given package
+	static bool build(const Package& pkg);
+
 	// true if StaticLib or SharedLib
 	static bool isLibrary(Package& pkg);
 

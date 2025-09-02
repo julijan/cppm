@@ -502,6 +502,22 @@ std::vector<Package> Package::dependents(const char *const name)
 	});
 }
 
+bool Package::build(const Package &pkg)
+{
+	int status = 0;
+	// generate cmake
+	std::cout << "Generating cmake...";
+	status = utils::system::runCommand("cd " + pkg.path + " && premake5 gmake");
+
+	if (status > 0) {return false;}
+
+	// build
+	std::cout << "Compiling...";
+	status = utils::system::runCommand("cd " + pkg.path + " && make");
+
+	return status == 0;
+}
+
 bool Package::isLibrary(Package &pkg)
 {
 	return pkg.type == PackageType::StaticLib || pkg.type == PackageType::SharedLib;
