@@ -27,17 +27,20 @@ std::filesystem::path Core::filePath(const char* const fileName) {
 	return std::filesystem::path(Core::path()).append(fileName);
 }
 
-
-void Core::initRegistry() {
+void Core::writeRegistry(const boost::json::value &json)
+{
 	std::ofstream fh(Core::filePath("registry.json"));
-	boost::json::array registry = {};
-
 	if (!fh.is_open()) {
 		std::cerr << "Error initializing package registry" << std::endl;
 		return;
 	}
 	
-	fh << registry;
+	fh << json;
+}
+
+void Core::initRegistry() {
+	boost::json::array registry = {};
+	Core::writeRegistry(registry);
 }
 
 void Core::printHelp(const char* command)
