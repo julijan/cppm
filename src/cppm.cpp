@@ -20,8 +20,6 @@ int main(int argc, const char* argv[]) {
 
 	const std::string currentPackageName = isPackage ? std::get<Package>(package).name : "none";
 
-	std::cout << currentPackageName << std::endl;
-
 	if (argc == 1) {
 		// called with no arguments
 		// output help
@@ -54,6 +52,26 @@ int main(int argc, const char* argv[]) {
 			std::cout << package.name << std::endl;
 		}
 		return 0;
+	}
+
+	if (strcmp(command, "show") == 0) {
+		// show details of provided package
+		// if package not provided show details of current package
+		if (argc == 2) {
+			// current project
+			if (!isPackage) {
+				std::cerr << "show command can be used without arguments only from a package directory. Try cpmm show [packageName]." << std::endl;
+				return 0;
+			}
+			Package pkg = std::get<Package>(package);
+			Package::display(pkg);
+			return 0;
+		}
+
+		if (argc > 2) {
+			Package::display(argv[2]);
+			return 0;
+		}
 	}
 
 	if (strcmp(command, "include") == 0) {
