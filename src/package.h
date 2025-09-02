@@ -64,6 +64,8 @@ public:
 	// initialize registry with an empty array
 	static void initRegistry();
 
+	static void addToRegistry(Package& pkg);
+
 	// update given package in registry
 	static void updateRegistry(Package& pkg);
 

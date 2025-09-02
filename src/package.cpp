@@ -96,21 +96,16 @@ void Package::create(const char *const name)
 		std::cout << "Initialized git repository" << std::endl;
 	}
 
-	// store to repository
+	// create instance
 	Package pkg(
 		std::string(name),
 		projectDir.string(),
 		Package::typeFromString(pType.c_str()),
 		true
 	);
-	boost::json::array packages = Package::packagesJSON();
-	
-	packages.push_back(Package::toJSON(pkg));
 
-	std::ofstream fs(Core::filePath("registry.json"));
-	if (fs.is_open()) {
-		fs << packages;
-	}
+	// store to registry
+	Package::addToRegistry(pkg);
 
 	// create premake5.lua
 	Package::generatePremake(pkg);
@@ -550,6 +545,14 @@ void Package::writeRegistry(const boost::json::value &json)
 void Package::initRegistry() {
 	boost::json::array registry = {};
 	Package::writeRegistry(registry);
+}
+
+void Package::addToRegistry(Package& pkg)
+{
+	boost::json::array packages = Package::packagesJSON();
+	packages.push_back(Package::toJSON(pkg));
+
+	Package::writeRegistry(packages);
 }
 
 void Package::updateRegistry(Package &pkg)
