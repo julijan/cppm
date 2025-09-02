@@ -268,10 +268,20 @@ int main(int argc, const char* argv[]) {
 
 	if (strcmp(command, "help") == 0) {
 		// no args: list commands with description
+		if (argc == 2) {
+			Core::printHelp();
+			return 0;
+		}
+		
 		// help [command] - show options for command
+		Core::printHelp(argv[2]);
+
+		return 0;
 	}
 
 	std::cerr << "Command " << command << " not recognized" << std::endl;
+
+	Core::printHelp();
 
 	return 0;
 }
