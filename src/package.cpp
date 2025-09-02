@@ -265,9 +265,10 @@ std::vector<std::string> Package::dependencyNames(const char *const name)
 		std::vector<std::string> dependencyNames = std::get<Package>(package).dependencies;
 
 		// make sure dependencies exist, remove non-existent
-		std::remove_if(dependencyNames.begin(), dependencyNames.end(), [](std::string depName) {
+		auto end = std::remove_if(dependencyNames.begin(), dependencyNames.end(), [](std::string depName) {
 			return !Package::packageExists(depName.c_str());
 		});
+		dependencyNames.erase(end, dependencyNames.end());
 
 		return dependencyNames;
 	}
