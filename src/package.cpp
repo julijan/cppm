@@ -333,6 +333,47 @@ void Package::addDependency(Package &pkg, const char *const name)
 	Package::addDependency(pkg, std::get<Package>(dependency));
 }
 
+void Package::removeDependency(Package &pkg, Package &dep)
+{
+	if (!Package::isDependency(pkg, dep)) {
+		std::cerr << dep.name << " is not a dependency of " << pkg.name << std::endl;
+		return;
+	}
+
+	// remove dependency
+	auto end = std::remove_if(
+		pkg.dependencies.begin(),
+		pkg.dependencies.end(),
+		[&dep](std::string& depName) {
+			return depName == dep.name;
+		}
+	);
+	pkg.dependencies.erase(end, pkg.dependencies.end());
+
+	// remove symlink
+	std::filesystem::path symlinkPath = std::filesystem::path(pkg.path).append("includes").append(dep.name);
+	if (std::filesystem::exists(symlinkPath)) {
+		std::filesystem::remove(symlinkPath);
+	}
+
+	// store to registry without dependency
+	Package::updateRegistry(pkg);
+
+	std::cout << "Dependency " << dep.name << " removed" << std::endl;
+}
+
+void Package::removeDependency(Package &pkg, const char *const name)
+{
+	MaybePackage dependency = Package::get(name);
+
+	if (std::holds_alternative<PackageNotFound>(dependency)) {
+		std::cerr << "Can't remove non-existent dependency " << name << std::endl;
+		return;
+	}
+
+	Package::removeDependency(pkg, std::get<Package>(dependency));
+}
+
 bool Package::isDependency(Package &pkg, const char *const depName)
 {
 	auto it = std::find_if(pkg.dependencies.begin(), pkg.dependencies.end(), [depName](std::string existingDep) {

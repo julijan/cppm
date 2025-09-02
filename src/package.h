@@ -73,6 +73,12 @@ public:
 	// add name as dependency of given Package
 	static void addDependency(Package& pkg, const char* const name);
 
+	// remove dep as dependency of pkg
+	static void removeDependency(Package& pkg, Package& dep);
+
+	// remove name as dependency of given Package
+	static void removeDependency(Package& pkg, const char* const name);
+
 	// check if depName is a dependency of pkg
 	static bool isDependency(Package&pkg, const char* const depName);
 

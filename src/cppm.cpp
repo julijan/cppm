@@ -106,6 +106,27 @@ int main(int argc, const char* argv[]) {
 		return 0;
 	}
 
+	if (strcmp(command, "exclude") == 0) {
+		// remove a dependency
+
+		if (!isPackage) {
+			std::cerr << "To remove a dependency you must be withn a package." << std::endl;
+			return 0;
+		}
+
+		if (argc < 3) {
+			std::cerr << "You must list at least one package to exclude" << std::endl;
+			return 0;
+		}
+
+		Package pkg = std::get<Package>(package);
+		for (int i = 2; i < argc; i++) {
+			Package::removeDependency(pkg, argv[i]);
+		}
+
+		return 0;
+	}
+
 	if (strcmp(command, "packages") == 0) {
 		// no arguments: list packages available in the registry
 		// check: check all packages in the registry making sure they exist and conform to registry
