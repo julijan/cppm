@@ -523,13 +523,13 @@ bool Package::build(const Package &pkg)
 {
 	int status = 0;
 	// generate cmake
-	std::cout << "Generating cmake...";
+	std::cout << "Generating cmake..." << std::endl;
 	status = utils::system::runCommand("cd " + pkg.path + " && premake5 gmake");
 
 	if (status > 0) {return false;}
 
 	// build
-	std::cout << "Compiling...";
+	std::cout << "Compiling..." << std::endl;
 	status = utils::system::runCommand("cd " + pkg.path + " && make");
 
 	return status == 0;
