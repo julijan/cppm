@@ -420,6 +420,9 @@ void Package::addDependency(Package &pkg, Package &dep)
 	std::filesystem::path symlinkTarget = dep.path;
 	
 	std::filesystem::create_directory_symlink(symlinkTarget, symlinkPath);
+
+	// re-generate premake
+	Package::generatePremake(pkg);
 }
 
 void Package::addDependency(Package &pkg, const char *const name)
@@ -458,6 +461,9 @@ void Package::removeDependency(Package &pkg, Package &dep)
 
 	// store to registry without dependency
 	Package::updateRegistry(pkg);
+
+	// re-generate premake
+	Package::generatePremake(pkg);
 
 	std::cout << "Dependency " << dep.name << " removed" << std::endl;
 }
