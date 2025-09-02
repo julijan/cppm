@@ -40,6 +40,9 @@ public:
 	// registers given path as a non-managed package
 	static void registerPackage(const std::filesystem::path& p);
 
+	// unregisters given package
+	static void unregisterPackage(const char* const name);
+
 	// return all registered packages
 	static std::vector<Package> packages();
 
@@ -67,7 +70,11 @@ public:
 	// initialize registry with an empty array
 	static void initRegistry();
 
+	// add given package to registry
 	static void addToRegistry(Package& pkg);
+
+	// remove given package from registry
+	static void removeFromRegistry(Package& pkg);
 
 	// update given package in registry
 	static void updateRegistry(Package& pkg);
@@ -98,6 +105,9 @@ public:
 
 	// check if depName is a dependency of pkgName
 	static bool isDependency(const char* const pkgName, const char* const depName);
+
+	// returns packages that depend on given package
+	static std::vector<Package> dependents(const char* const name);
 
 	// true if StaticLib or SharedLib
 	static bool isLibrary(Package& pkg);

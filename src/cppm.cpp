@@ -154,6 +154,24 @@ int main(int argc, const char* argv[]) {
 
 	if (strcmp(command, "unregister") == 0) {
 		// unregister provided package name, if omiitted unregister the current path as a package
+		if (argc == 2) {
+			// no arguments provided, must be within package directory
+			if (!isPackage) {
+				std::cerr << "Using unregister without package name(s) can only be done from a project directory" << std::endl;
+				return 0;
+			}
+
+			Package::unregisterPackage(currentPackageName.c_str());
+
+			return 0;
+		}
+
+		// unregister listed packages
+		for (int i = 2; i < argc; i++) {
+			Package::unregisterPackage(argv[i]);
+		}
+
+		return 0;
 	}
 
 	if (strcmp(command, "verify") == 0) {

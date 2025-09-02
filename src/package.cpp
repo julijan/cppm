@@ -173,6 +173,68 @@ void Package::registerPackage(const std::filesystem::path& p) {
 	std::cout << "Package " << pkg.name << " registered" << std::endl;
 }
 
+void Package::unregisterPackage(const char *const name)
+{
+
+	MaybePackage pkg = Package::get(name);
+
+	if (std::holds_alternative<PackageNotFound>(pkg)) {
+		std::cerr << "Package " << name << " not registered";
+		return;
+	}
+
+	if (std::get<Package>(pkg).managed) {
+		// confirm unregistering of managed packages
+		std::cout << "You are about to unregister a managed (your own) package " << name << std::endl;
+		std::cout << "Proceed? (Y)Yes / (N)No" << std::endl;
+		char action;
+		while (true) {
+			std::cin >> action;
+
+			if (action == 'Y' || action == 'y') {
+				// proceed
+				break;
+			}
+
+			if (action == 'N' || action == 'n') {
+				// abort
+				return;
+			}
+		}
+	}
+
+	std::vector<Package> dependents = Package::dependents(name);
+
+	if (dependents.size() > 0) {
+		std::cout << dependents.size() << " packages depend on " << name << std::endl;
+		std::cout << "If you unregister this package, it will be removed from dependency list of it's dependents, as a result, affected packages may not work as expected" << std::endl;
+		std::cout << "What do you want to do? (C)Cancel / (U)Unregister:";
+
+		char action;
+		while (true) {
+			std::cin >> action;
+			if (action == 'C' || action == 'c') {
+				// user decided to cancel the operation
+				return;
+			}
+
+			if (action == 'U' || action == 'u') {
+				// user decided to proceed with unregistering
+				break;
+			}
+		}
+
+		// remove as dependency for all dependents
+		for (Package& dependent: dependents) {
+			Package::removeDependency(dependent, std::get<Package>(pkg));
+		}
+	}
+
+	Package::removeFromRegistry(std::get<Package>(pkg));
+
+	std::cout << "Package " << name << " unregistered" << std::endl;
+}
+
 std::string Package::promptType(bool expectLibrary) {
 	// if expectLibrary (only for non-managed projects), list is limited to library types
 	std::initializer_list<const char*> options = expectLibrary ?
@@ -439,6 +501,18 @@ bool Package::isDependency(const char *const pkgName, const char *const depName)
 	return Package::isDependency(std::get<Package>(pkg), depName);
 }
 
+std::vector<Package> Package::dependents(const char *const name)
+{
+	return Package::filter([name](Package& pkg) {
+		for (std::string& depName: pkg.dependencies) {
+			if (depName == name) {
+				return true;
+			}
+		}
+		return false;
+	});
+}
+
 bool Package::isLibrary(Package &pkg)
 {
 	return pkg.type == PackageType::StaticLib || pkg.type == PackageType::SharedLib;
@@ -611,6 +685,20 @@ void Package::addToRegistry(Package& pkg)
 	packages.push_back(Package::toJSON(pkg));
 
 	Package::writeRegistry(packages);
+}
+
+void Package::removeFromRegistry(Package &pkg)
+{
+	boost::json::array packages = Package::packagesJSON();
+	boost::json::array packagesNew = {};
+	
+	for (auto package: packages) {
+		if (package.at("name").as_string() != pkg.name) {
+			packagesNew.push_back(package);
+		}
+	}
+
+	Package::writeRegistry(packagesNew);
 }
 
 void Package::updateRegistry(Package &pkg)
