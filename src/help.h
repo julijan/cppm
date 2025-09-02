@@ -147,3 +147,8 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 };
 
 inline const char* HELP_GENERAL = "Usage cppm [command] [...options]";
+
+namespace help {
+	void printHelp(const char* command = nullptr);
+	void printHelpItem(const HelpItem& item, bool shortDescription);
+}

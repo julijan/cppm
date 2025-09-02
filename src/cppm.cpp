@@ -5,6 +5,7 @@
 
 #include "package.h"
 #include "core.h"
+#include "./help.h"
 
 
 int main(int argc, const char* argv[]) {
@@ -25,7 +26,7 @@ int main(int argc, const char* argv[]) {
 	if (argc == 1) {
 		// called with no arguments
 		// output help
-		Core::printHelp(nullptr);
+		help::printHelp();
 		return 0;
 	}
 
@@ -269,19 +270,19 @@ int main(int argc, const char* argv[]) {
 	if (strcmp(command, "help") == 0) {
 		// no args: list commands with description
 		if (argc == 2) {
-			Core::printHelp();
+			help::printHelp();
 			return 0;
 		}
 		
 		// help [command] - show options for command
-		Core::printHelp(argv[2]);
+		help::printHelp(argv[2]);
 
 		return 0;
 	}
 
 	std::cerr << "Command " << command << " not recognized" << std::endl;
 
-	Core::printHelp();
+	help::printHelp();
 
 	return 0;
 }

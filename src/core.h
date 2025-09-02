@@ -3,7 +3,6 @@
 #include <filesystem>
 #include <string>
 #include "utils.h"
-#include "help.h"
 
 struct Command {
 	std::string name;
@@ -19,13 +18,9 @@ public:
 	// create ~/.cppm directory if it does not exist
 	static void initDirectory();
 	
+	// returns file path within ~/.cppm directory
 	static std::filesystem::path filePath(const char* const fileName);
-	
-	static void printHelp(const char* command = nullptr);
-	
-	private:
-	static void printHelpItem(const HelpItem& item, bool shortDescription);
-
+private:
 	// check if ~/.cppm directory exists
 	static bool directoryExists();
 };
