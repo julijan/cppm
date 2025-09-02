@@ -144,13 +144,15 @@ int main(int argc, const char* argv[]) {
 		return 0;
 	}
 
-	if (strcmp(command, "packages") == 0) {
-		// no arguments: list packages available in the registry
-		// check: check all packages in the registry making sure they exist and conform to registry
-	}
-
 	if (strcmp(command, "register") == 0) {
 		// register current path as a package
+	}
+
+	if (strcmp(command, "verify") == 0) {
+		// verify package(s) making sure they exist and conform to registry
+		// no arguments: verify current package
+		// --all: verify all packages
+		// package list: verify listed packages
 	}
 
 	if (strcmp(command, "unregister") == 0) {
