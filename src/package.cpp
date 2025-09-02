@@ -113,14 +113,12 @@ void Package::create(const char *const name)
 	if (fs.is_open()) {
 		// no need to fail here if failed to open
 		// hello world is not required, just a convenience
-		fs << R"(#include <iostream>
+		fs << "#include <iostream>\n" << std::endl;
+		fs << "int main() {" << std::endl;
+		fs << "\tstd::cout << \"Hello, world!\" << std::endl;" << std::endl;
+		fs << "\treturn 0;" << std::endl;
+		fs << '}' << std::endl;
 
-		int main() {
-			std::cout << "Hello, world!" << std::endl;
-			return 0;
-		})";
-
-		fs.flush();
 		fs.close();
 	}
 
