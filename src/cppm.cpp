@@ -86,6 +86,12 @@ int main(int argc, const char* argv[]) {
 			}
 
 			Package pkg = std::get<Package>(package);
+
+			if (!pkg.managed) {
+				std::cerr << "Can't use include in a non-managed package" << std::endl;
+				return 0;
+			}
+
 			Package::listDependencies(pkg);
 			return 0;
 		}
@@ -97,6 +103,11 @@ int main(int argc, const char* argv[]) {
 		}
 		
 		Package pkg = std::get<Package>(package);
+
+		if (!pkg.managed) {
+			std::cerr << "Can't use include in a non-managed package" << std::endl;
+			return 0;
+		}
 
 		for (int i = 2; i < argc; i++) {
 			Package::addDependency(pkg, argv[i]);
@@ -120,6 +131,12 @@ int main(int argc, const char* argv[]) {
 		}
 
 		Package pkg = std::get<Package>(package);
+
+		if (!pkg.managed) {
+			std::cerr << "Can't use exclude in a non-managed package" << std::endl;
+			return 0;
+		}
+
 		for (int i = 2; i < argc; i++) {
 			Package::removeDependency(pkg, argv[i]);
 		}
