@@ -7,6 +7,7 @@
 namespace utils {
 	namespace string {
 
+		// replace all occurences of needle with replaceWith
 		std::string replaceAll(
 			std::string str,
 			const char* needle,
@@ -19,7 +20,14 @@ namespace utils {
 			const char* replaceWith
 		);
 
+		// remove space, newline and tab chars from beginning and end of given string
+		// returns a new string
 		std::string trim(std::string& str);
+
+		// used to disaply large blocks of text in a nicer format
+		// toWidth will insert a line break every charWidth chars, unless strict = false
+		// in which case it will avoid breaking words while still trying to get close to desired width
+		std::string toWidth(const std::string str, unsigned int charWidth, bool strict);
 	}
 
 	namespace fs {

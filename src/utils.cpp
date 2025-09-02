@@ -54,6 +54,44 @@ namespace utils {
 
 			return str.substr(start, end);
 		}
+
+		std::string toWidth(const std::string str, unsigned int charWidth, bool strict)
+		{
+			std::string output = "";
+			int currentChar = 0;
+			int lineWidth = 0;
+			while (currentChar < str.length()) {
+				char c = str[currentChar];
+
+				if (c == '\n') {
+					// input string contains a line break
+					// reset lineWidth
+					lineWidth = 0;
+				} else if (lineWidth > charWidth) {
+					// time to insert a line break
+					// it will be done in all cases if strict = true
+					// otherwise only if a bounds char is found
+					bool boundsChar = c == ' ' || c == '\t';
+					bool breakLine = boundsChar || strict;
+					if (breakLine) {
+						output += '\n';
+						lineWidth = 0;
+						if (!strict) {
+							// skip the current char, it is a bounds char in this case
+							currentChar++;
+							continue;
+						}
+					}
+				}
+
+				output += c;
+
+				lineWidth++;
+				currentChar++;
+			}
+
+			return output;
+		}
 	}
 
 	namespace fs {
