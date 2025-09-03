@@ -560,7 +560,7 @@ void Package::generatePremake(Package &pkg)
 	fstream << "\tarchitecture \"x64\"" << std::endl;
 	fstream << "\ttargetdir \"bin/%{cfg.buildcfg}\"" << std::endl;
 	fstream << "\tfiles { \"./src/**.h\", \"./src/**.cpp\" }" << std::endl;
-	fstream << "\tincludedirs { \"./includes\" }" << std::endl;
+	fstream << "\tincludedirs { \"./includes/**\" }" << std::endl;
 
 	if (pkg.dependencies.size() > 0) {
 		// link libraries
