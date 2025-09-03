@@ -40,6 +40,19 @@ namespace utils {
 		void mkdir(path p);
 
 		path currentPath();
+
+		// append all given sub-directories to given path
+		// returns a new path
+		template <int Depth>
+		inline std::filesystem::path extendPath(const std::filesystem::path& p, SmartArray<const char*, Depth> subdirs) {
+			std::filesystem::path path(p);
+
+			for (const char* subdir: subdirs) {
+				path.append(subdir);
+			}
+
+			return path;
+		};
 	}
 
 	namespace system {
