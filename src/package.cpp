@@ -86,6 +86,12 @@ void Package::create(const char *const name)
 		}
 	}
 
+	// create includes/lib and includes/src
+	// includes/src contains symlinks to dependency -> ./src
+	// includes/lib contains symlinks to dependency -> ./bin
+	std::filesystem::create_directory(std::filesystem::path(projectDir).append("includes").append("lib"));
+	std::filesystem::create_directory(std::filesystem::path(projectDir).append("includes").append("src"));
+
 	// select project type
 	std::string pType = Package::promptType(false);
 
@@ -408,19 +414,27 @@ void Package::addDependency(Package &pkg, Package &dep)
 		return;
 	}
 
-
 	// add dependency and update registry
 	pkg.dependencies.push_back(dep.name);
 	Package::updateRegistry(pkg);
 
-	// create symbolic link in /includes
+	// create symbolic links
 	std::filesystem::path pkgPath = pkg.path;
-	std::filesystem::path includesPath = std::filesystem::path(pkgPath).append("includes");
-	std::filesystem::path symlinkPath = std::filesystem::path(includesPath).append(dep.name);
 
-	std::filesystem::path symlinkTarget = dep.path;
-	
-	std::filesystem::create_directory_symlink(symlinkTarget, symlinkPath);
+	// create symbolic link in /includes/src, used by includedirs
+	std::filesystem::path includesPath = std::filesystem::path(pkgPath).append("includes").append("src");
+	std::filesystem::path includesSymlinkPath = std::filesystem::path(includesPath).append(dep.name);
+
+	std::filesystem::path includesSymlinkTarget = std::filesystem::path(dep.path).append("src");
+	std::filesystem::create_directory_symlink(includesSymlinkTarget, includesSymlinkPath);
+
+	// create symbolic link in /includes/lib, used by libdirs
+	std::filesystem::path libsPath = std::filesystem::path(pkgPath).append("includes").append("lib");
+	std::filesystem::path libsSymlinkPath = std::filesystem::path(libsPath).append(dep.name);
+
+	std::filesystem::path libsSymlinkTarget = std::filesystem::path(dep.path).append("bin");
+	std::filesystem::create_directory_symlink(libsSymlinkTarget, libsSymlinkPath);
+
 
 	// re-generate premake
 	Package::generatePremake(pkg);
@@ -454,10 +468,14 @@ void Package::removeDependency(Package &pkg, Package &dep)
 	);
 	pkg.dependencies.erase(end, pkg.dependencies.end());
 
-	// remove symlink
-	std::filesystem::path symlinkPath = std::filesystem::path(pkg.path).append("includes").append(dep.name);
-	if (std::filesystem::exists(symlinkPath)) {
-		std::filesystem::remove(symlinkPath);
+	// remove symlinks
+	std::filesystem::path includesSymlinkPath = std::filesystem::path(pkg.path).append("includes").append("src").append(dep.name);
+	std::filesystem::path libsSymlinkPath = std::filesystem::path(pkg.path).append("includes").append("lib").append(dep.name);
+	if (std::filesystem::exists(includesSymlinkPath)) {
+		std::filesystem::remove(includesSymlinkPath);
+	}
+	if (std::filesystem::exists(libsSymlinkPath)) {
+		std::filesystem::remove(libsSymlinkPath);
 	}
 
 	// store to registry without dependency
@@ -560,8 +578,8 @@ void Package::generatePremake(Package &pkg)
 	fstream << "\tarchitecture \"x64\"" << std::endl;
 	fstream << "\ttargetdir \"bin/%{cfg.buildcfg}\"" << std::endl;
 	fstream << "\tfiles { \"./src/**.h\", \"./src/**.cpp\" }" << std::endl;
-	fstream << "\tincludedirs { \"./includes/**\" }" << std::endl;
-	fstream << "\tlibdirs { \"./includes/**\" }" << std::endl;
+	fstream << "\tincludedirs { \"./includes/src/**\" }" << std::endl;
+	fstream << "\tlibdirs { \"./includes/lib/**\" }" << std::endl;
 
 	if (pkg.dependencies.size() > 0) {
 		// link libraries
