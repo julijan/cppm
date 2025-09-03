@@ -637,12 +637,13 @@ void Package::generatePremake(Package &pkg)
 			for (std::string link: pkg.linkableObjects) {
 				fstream << "\t\t\"" << link << '"';
 			}
-			fstream << "\t}" << std::endl;
 		} else {
 			// pkg is a library with no linkableObjects
 			// assume pkg.name
-			fstream << " \"" << pkg.name << " \"" << std::endl;
+			fstream << "\t\t\"" << pkg.name << "\"" << std::endl;
 		}
+
+		fstream << "\t}" << std::endl;
 
 	}
 
