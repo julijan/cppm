@@ -222,6 +222,8 @@ int main(int argc, const char* argv[]) {
 
 			const Package& pkg = std::get<Package>(package);
 			Package::build(pkg);
+
+			return 0;
 		}
 
 		for (int i = 2; i < argc; i++) {
@@ -234,6 +236,8 @@ int main(int argc, const char* argv[]) {
 			const Package& pkg = std::get<Package>(pkgMaybe);
 			Package::build(pkg);
 		}
+
+		return 0;
 	}
 
 	if (strcmp(command, "verify") == 0) {
