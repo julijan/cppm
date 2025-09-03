@@ -119,8 +119,8 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 	{
 		.command = "unregister",
 		.alias = "",
-		.description = "Remove previously registered non-managed package from the registry. If none of your packages depend on it, it will simply remove it from the registry, otherwise you will be prompted whether you want to proceed.",
-		.descriptionShort = "Remove previously registered non-managed package from the registry",
+		.description = "Remove a package from the registry. If none of your packages depend on it, it will simply remove it from the registry, otherwise you will be prompted whether you want to proceed.",
+		.descriptionShort = "Remove a package from the registry",
 		.arguments = {
 			{
 				.name = "packageName",
