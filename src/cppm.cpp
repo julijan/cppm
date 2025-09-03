@@ -240,6 +240,27 @@ int main(int argc, const char* argv[]) {
 		return 0;
 	}
 
+	if (strcmp(command, "add") == 0) {
+		// for each listed file
+		// create /src/[file].cpp and /src/[file].h
+
+		if (!isPackage) {
+			std::cerr << "Add command can only be executed within a package" << std::endl;
+			return 0;
+		}
+
+		if (argc < 3) {
+			std::cerr << "You must list at least one source file to be created" << std::endl;
+			return 0;
+		}
+
+		for (int i = 2; i < argc; i++) {
+			Package::addSrc(currentPackageName.c_str(), argv[i]);
+		}
+
+		return 0;
+	}
+
 	if (strcmp(command, "verify") == 0) {
 		// verify package(s) making sure they exist and conform to registry
 		// no arguments: verify current package

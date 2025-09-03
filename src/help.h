@@ -33,6 +33,20 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 		}
 	},
 	{
+		.command = "add",
+		.alias = "",
+		.description = "When issued within a package ./src/[srcName].cpp and ./src/[srcName].h will be created, and cmake will be re-generated to include the new sources in the build. This is the preferred method to create new source files.",
+		.descriptionShort = "Add new source file(s)",
+		.arguments = {
+			{
+				.name = "srcName",
+				.description = "file name(s) to create",
+				.required = true,
+				.list = true
+			}
+		}
+	},
+	{
 		.command = "list",
 		.alias = "ls",
 		.description = "List all registered packages",

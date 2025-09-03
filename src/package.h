@@ -38,6 +38,18 @@ public:
 	// create a project (managed package)
 	static void create(const char* const name);
 
+	// return package path
+	// subdirs is an array of subdirectories within the package path
+	// eg. ["includes", "lib"] -> [package.path]/includes/lib
+	// passing an empty array will return the package path
+	template <int Depth>
+	static std::filesystem::path getPath(const char* const pkgName, SmartArray<const char*, Depth> subdirs);
+
+	// return package path, or a path within it
+	// Make sure package exists before calling this! If package does not exists path will be /dev/null
+	template <int Depth>
+	static std::filesystem::path getPath(const Package& pkg, SmartArray<const char*, Depth> subdirs);
+
 	// registers given path as a non-managed package
 	static void registerPackage(const std::filesystem::path& p);
 
@@ -80,6 +92,11 @@ public:
 	// update given package in registry
 	static void updateRegistry(Package& pkg);
 
+	// create /src/[name].cpp and /src/[name].h
+	static void addSrc(const Package& pkg, const std::string& srcName);
+	// create /src/[name].cpp and /src/[name].h
+	static void addSrc(const char* const pkgName, const char* srcName);
+
 	// return package dependency names
 	static std::vector<std::string> dependencyNames(const char* const name);
 
@@ -110,17 +127,20 @@ public:
 	// returns packages that depend on given package
 	static std::vector<Package> dependents(const char* const name);
 
-	// build given package
-	static bool build(const Package& pkg);
-
 	// true if StaticLib or SharedLib
-	static bool isLibrary(Package& pkg);
+	static bool isLibrary(const Package& pkg);
 
 	// generate premake5.lua for given Package
-	static void generatePremake(Package& pkg);
+	static void generatePremake(const Package& pkg);
 
 	// generate VSC (Visual Studio Code) configuration for given package
 	static void generateVSC(Package& pkg);
+
+	// (re)generate cmake
+	static bool generateCmake(const Package& pkg);
+
+	// build given package
+	static bool build(const Package& pkg);
 
 	// returns project in given path, or path containing given path
 	// for example, project in /a will be returned by path /a or /a/b or /a/b/c but wont by /b/c

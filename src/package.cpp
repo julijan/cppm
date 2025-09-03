@@ -132,7 +132,33 @@ void Package::create(const char *const name)
 	Package::generatePremake(pkg);
 }
 
-void Package::registerPackage(const std::filesystem::path& p) {
+template <int Depth>
+std::filesystem::path Package::getPath(const char *const pkgName, SmartArray<const char*, Depth> subdirs)
+{
+	MaybePackage pkg = Package::get(pkgName);
+
+	if (std::holds_alternative<PackageNotFound>(pkg)) {
+		// Package not found! return /dev/null which seems like the safest option
+		return std::filesystem::path("/dev/null");
+	}
+
+	return Package::getPath(std::get<Package>(pkg), subdirs);
+}
+
+template <int Depth>
+std::filesystem::path Package::getPath(const Package& pkg, SmartArray<const char*, Depth> subdirs)
+{
+	std::filesystem::path p(pkg.path);
+
+	for (const char* subdir: subdirs) {
+		p.append(subdir);
+	}
+
+	return p;
+}
+
+void Package::registerPackage(const std::filesystem::path &p)
+{
 	// make sure a package in this path is not already registered
 	MaybePackage existing = Package::includesPath(p);
 	
@@ -537,26 +563,27 @@ std::vector<Package> Package::dependents(const char *const name)
 
 bool Package::build(const Package &pkg)
 {
-	int status = 0;
-	// generate cmake
-	std::cout << "Generating cmake..." << std::endl;
-	status = utils::system::runCommand("cd " + pkg.path + " && premake5 gmake");
-
-	if (status > 0) {return false;}
+	if (!Package::generateCmake(pkg)) {
+		return false;
+	}
 
 	// build
 	std::cout << "Compiling..." << std::endl;
-	status = utils::system::runCommand("cd " + pkg.path + " && make");
-
-	return status == 0;
+	return utils::system::runCommand("cd " + pkg.path + " && make") == 0;
 }
 
-bool Package::isLibrary(Package &pkg)
+bool Package::generateCmake(const Package &pkg)
+{
+	std::cout << "Generating cmake..." << std::endl;
+	return utils::system::runCommand("cd " + pkg.path + " && premake5 gmake > /dev/null") == 0;
+}
+
+bool Package::isLibrary(const Package &pkg)
 {
 	return pkg.type == PackageType::StaticLib || pkg.type == PackageType::SharedLib;
 }
 
-void Package::generatePremake(Package &pkg)
+void Package::generatePremake(const Package &pkg)
 {
 	std::filesystem::path premakePath = std::filesystem::path(pkg.path).append("premake5.lua");
 	std::ofstream fstream(premakePath);
@@ -587,7 +614,7 @@ void Package::generatePremake(Package &pkg)
 		// collect all linked objects in a vector
 		std::vector<std::string> linked;
 
-		for (std::string& depName: pkg.dependencies) {
+		for (const std::string& depName: pkg.dependencies) {
 			MaybePackage dependency = Package::get(depName.c_str());
 			if (std::holds_alternative<PackageNotFound>(dependency)) {
 				// missing dependency!
@@ -798,6 +825,67 @@ void Package::updateRegistry(Package &pkg)
 
 	// if we got here it means package was not found in the registry
 	std::cerr << "Can't update package registry, package " << pkg.name << " not registered" << std::endl;
+}
+
+void Package::addSrc(const Package& pkg, const std::string& srcName)
+{
+	// get path to /src
+	const std::filesystem::path src = Package::getPath<1>(pkg, { "src" });
+
+	// construct file names with extensions
+	const std::string cppName = srcName + ".cpp";
+	const std::string hName = srcName + ".h";
+
+	// construct paths for both files
+	const std::filesystem::path cppPath = std::filesystem::path(src).append(cppName);
+	const std::filesystem::path hPath = std::filesystem::path(src).append(hName);
+
+	// becomes true if at least one file gets created
+	bool added = false;
+
+	// create blank files
+	if (!std::filesystem::exists(cppPath)) {
+		std::ofstream f(cppPath);
+		if (f.is_open()) {
+			f << std::endl;
+		}
+		f.close();
+		added = true;
+	} else {
+		std::cout << ".cpp file exists, skipping" << std::endl;
+	}
+
+	if (!std::filesystem::exists(hPath)) {
+		std::ofstream f(hPath);
+		if (f.is_open()) {
+			f << "#pragma once\n" << std::endl;
+		}
+		f.close();
+		added = true;
+	} else {
+		std::cout << ".h file exists, skipping" << std::endl;
+	}
+
+	// re-generate premake
+	Package::generateCmake(pkg);
+
+	if (added) {
+		std::cout << "Source " << srcName << " added" << std::endl;
+	} else {
+		std::cout << "No files were created" << std::endl;
+	}
+}
+
+void Package::addSrc(const char *const pkgName, const char *srcName)
+{
+	MaybePackage pkg = Package::get(pkgName);
+
+	if (std::holds_alternative<PackageNotFound>(pkg)) {
+		std::cerr << "Package " << pkgName << " does not exist" << std::endl;
+		return;
+	}
+
+	Package::addSrc(std::get<Package>(pkg), srcName);
 }
 
 std::string Package::typeToString(PackageType t) {
