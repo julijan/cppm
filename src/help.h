@@ -132,6 +132,28 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 		}
 	},
 	{
+		.command = "move",
+		.alias = "mv",
+		.description = "Safely move package files to a new destination in the filesystem. Safely means that package dependents will not be broken after the move, as opposed to moving the package in other way.",
+		.descriptionShort = "Safely move package files to a new destination in the filesystem",
+		.arguments = {
+			{
+				.name = "packageName",
+				.description = "Package to be moved. Required, unless you are within the package directory in which case current package is assumed",
+				.required = false,
+				.list = false,
+				.literal = false
+			},
+			{
+				.name = "pathTo",
+				.description = "Path to move the package directory into. It should not include the package directory name. Assume you have package in /a and want to move it to /b, cppm mv /b/ will result with /b/a",
+				.required = true,
+				.list = false,
+				.literal = false
+			}
+		}
+	},
+	{
 		.command = "vsc",
 		.alias = "",
 		.description = "Generates configuration for Visual Studio Code for given package(s) making it aware of the used dependencies.",

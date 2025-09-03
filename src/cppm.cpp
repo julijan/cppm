@@ -297,6 +297,69 @@ int main(int argc, const char* argv[]) {
 		}
 	}
 
+	if (strcmp(command, "mv") == 0 || strcmp(command, "move") == 0) {
+		// move project to given path updating dependendents
+
+		if (argc == 2) {
+			std::cerr << "Not enough arguments, run 'cppm help mv' for information on how to use it" << std::endl;
+			return 0;
+		}
+
+		if (argc == 3) {
+
+			if (!isPackage) {
+				std::cerr << "Not within a package and package name not provided" << std::endl;
+				return 0;
+			}
+
+			const char* pathString = argv[2];
+			if (strlen(pathString) == 0) {
+				std::cerr << "Invalid path" << std::endl;
+				return 0;
+			}
+
+			// moving from within a package, not ideal for the user
+			// as they will remain in a non existing path in terminal, which can cause confusion
+			std::cout << "You are moving a package while being in it's directory. This is possible, but your terminal working directory will remain the current directory, which may no longer exist after this. This is usually not a problem, but it can cause confusion." << std::endl;
+			std::cout << "You can proceed, or cd out of the package and run cppm mv [package] [path]." << std::endl;
+			std::cout << "(P)Proceed / (A)Abort" << std::endl;
+			char action;
+			while (true) {
+				std::cin >> action;
+
+				if (action == 'P' || action == 'p') {
+					break;
+				}
+
+				if (action == 'A' || action == 'a') {
+					return 0;
+				}
+			}
+
+			// user decided to proceed
+			Package pkg = std::get<Package>(package);
+			std::filesystem::path to(pathString);
+
+			Package::move(pkg, to);
+
+			return 0;
+		}
+
+		const char* pkgName = argv[2];
+		const char* pathToString = argv[3];
+
+		MaybePackage pkg = Package::get(pkgName);
+		if (std::holds_alternative<PackageNotFound>(pkg)) {
+			std::cerr << "Package " << pkgName << " not found" << std::endl;
+			return 0;
+		}
+
+		const std::filesystem::path pathTo(pathToString);
+		Package::move(std::get<Package>(pkg), pathTo);
+
+		return 0;
+	}
+
 	if (strcmp(command, "refresh") == 0) {
 		// refresh given package, look for linkable objects
 	}
@@ -308,10 +371,6 @@ int main(int argc, const char* argv[]) {
 
 	if (strcmp(command, "run") == 0) {
 		// run the project
-	}
-
-	if (strcmp(command, "mv") == 0) {
-		// move project to given path updating dependendents
 	}
 
 	if (strcmp(command, "cd") == 0) {

@@ -57,6 +57,9 @@ public:
 	// return package path
 	static std::filesystem::path getPath(const Package& pkg);
 
+	// safely move package to given path
+	static void move(Package& pkg, const std::filesystem::path to);
+
 	// registers given path as a non-managed package
 	static void registerPackage(const std::filesystem::path& p, bool managed);
 

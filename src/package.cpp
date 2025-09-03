@@ -191,6 +191,64 @@ std::filesystem::path Package::getPath(const Package &pkg)
 	return Package::getPath<0>(pkg, {});
 }
 
+void Package::move(Package &pkg, const std::filesystem::path toBare)
+{
+	const std::filesystem::path currentPath  = Package::getPath(pkg);
+	const auto currentDirname = currentPath.filename();
+
+	// include package name in to so user doesn't have to enter it when entering the to path
+	std::filesystem::path to = utils::fs::extendPath<1>(toBare, { currentDirname.c_str() });
+
+
+	// make sure the destination is not a package directory
+	// can't move a package into another package
+	MaybePackage packageInDestination = Package::inPath(to);
+
+	if (std::holds_alternative<Package>(packageInDestination)) {
+		std::cerr << "Can't move package to " << to << " package " << std::get<Package>(packageInDestination).name << " there" << std::endl;
+		return;
+	}
+
+	// get dependents
+	const std::vector<Package> dependents = Package::dependents(pkg.name.c_str());
+
+	// move package
+	std::filesystem::rename(currentPath, to);
+
+	// update in registry
+	pkg.path = to.string();
+	Package::updateRegistry(pkg);
+
+	// update dependents
+	int depsUpdated = 0;
+	const std::filesystem::path pkgSrc = utils::fs::extendPath<1>(to, { "src" });
+	const std::filesystem::path pkgLib = utils::fs::extendPath<1>(to, { "bin" });
+	for (const Package& dependent: dependents) {
+		const auto pathToSrcIncludes = Package::getPath<3>(dependent, { "includes", "src", pkg.name.c_str() });
+		const auto pathToLibIncludes = Package::getPath<3>(dependent, { "includes", "lib", pkg.name.c_str() });
+
+		// remove existing symbolic links
+		if (std::filesystem::exists(pathToSrcIncludes)) {
+			std::filesystem::remove(pathToSrcIncludes);
+		}
+		if (std::filesystem::exists(pathToLibIncludes)) {
+			std::filesystem::remove(pathToLibIncludes);
+		}
+
+		// create new symbolic links
+		std::filesystem::create_symlink(pkgSrc, pathToSrcIncludes);
+		std::filesystem::create_symlink(pkgLib, pathToLibIncludes);
+
+		// keep track how many dependents were updated
+		depsUpdated++;
+	}
+
+	std::cout << "Package " << pkg.name << " moved to " << to << "." << std::endl;
+	if (depsUpdated > 0) {
+		std::cout << "Updated " << depsUpdated << " dependent packages" << std::endl;
+	}
+}
+
 void Package::registerPackage(const std::filesystem::path &p, bool managed)
 {
 	// make sure a package in this path is not already registered
