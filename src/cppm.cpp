@@ -64,7 +64,7 @@ int main(int argc, const char* argv[]) {
 		if (argc == 2) {
 			// current project
 			if (!isPackage) {
-				std::cerr << "show command can be used without arguments only from a package directory. Try cpmm show [packageName]." << std::endl;
+				std::cerr << "show command can be used without arguments only from a package directory. Try cppm show [packageName]." << std::endl;
 				return 0;
 			}
 			Package pkg = std::get<Package>(package);
