@@ -214,6 +214,21 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 		}
 	},
 	{
+		.command = "push",
+		.alias = "",
+		.description = "Push distributable package to remote repository. Running this command is same as running cppm materialize, git push, cppm unmaterialize (in this exact sequence). This is needed because included packages are, by default, linked to you package using symbolic links, which would be pushed to remote as such, pointing to non-existent data when checked out on a remote machine. Materialize includes all dependency files in includes directory to produce a protable package which can be compiled when checked out on any compatible system. Once push to remote is done, includes are reverted to non-materialized (symbolic link) state. If you want to learn more, read help for materialize and unmaterialize commands.",
+		.descriptionShort = "Push distributable package to remote repository",
+		.arguments = {
+			{
+				.name = "packageName",
+				.description = "Package name(s) to push to remote repository. Required, unless within a managed package directory in which case current package is assumed.",
+				.required = false,
+				.list = true,
+				.literal = false
+			}
+		}
+	},
+	{
 		.command = "help",
 		.alias = "",
 		.description = "List available commands, specify command to show details about it's usage.\n\nArgument syntax:\n? - argument is optional (although it may require you to be within a package dir)\n... - you can list multiple arguments at once\n[] - argument is a variable, not a literal",

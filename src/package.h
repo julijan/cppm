@@ -172,6 +172,11 @@ public:
 	// have premake5.lua (if strict = true)
 	static bool check(const Package& pkg, bool strict);
 
+	// push git repository to remote
+	// before push, it produces a portable package by materializing all the dependencies
+	// after push it un-materializes dependencies
+	static void push(const Package& pkg);
+
 	static bool checkAll();
 
 	// does given path contain a package-like structure

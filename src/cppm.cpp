@@ -379,6 +379,27 @@ int main(int argc, const char* argv[]) {
 		// this will first materialize dependencies and then push
 		// otherwise the project on remote will contain symlinks pointing to non-existent data
 		// after push, dependencies will get de-materialized
+		if (argc == 2) {
+			// package not provided, assume current
+			if (!isPackage) {
+				std::cerr << "You must provide a package name or execute within a package" << std::endl;
+				return 0;
+			}
+
+			Package::push(std::get<Package>(package));
+			return 0;
+		}
+
+		for (int i = 2; i < argc; i++) {
+			MaybePackage pkg = Package::get(argv[i]);
+			if (std::holds_alternative<PackageNotFound>(pkg)) {
+				std::cerr << "Skipped package " << argv[i] << ", not found" << std::endl;
+				continue;
+			}
+			Package::push(std::get<Package>(pkg));
+		}
+
+		return 0;
 	}
 
 	if (strcmp(command, "help") == 0) {

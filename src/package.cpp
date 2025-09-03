@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cstdlib>
 
 #include "package.h"
 #include "utils.h"
@@ -76,11 +77,6 @@ void Package::create(const char *const name)
 	// select project type
 	std::string pType = Package::promptType(false);
 
-	// init a git repository
-	std::string gitInitCommand = utils::string::replaceAll("git init -q %s", "%s", projectDir.c_str());
-	if (utils::system::runCommand(gitInitCommand) == 0) {
-		std::cout << "Initialized git repository" << std::endl;
-	}
 
 	// create instance
 	Package pkg(
@@ -89,6 +85,36 @@ void Package::create(const char *const name)
 		Package::typeFromString(pType.c_str()),
 		true
 	);
+
+	// init a git repository
+	std::string gitInitCommand = utils::string::replaceAll("git init -q %s", "%s", projectDir.c_str());
+	if (utils::system::runCommand(gitInitCommand) == 0) {
+		std::cout << "Initialized git repository" << std::endl;
+	}
+
+	// create git pre-push hook
+	const auto preHookPath = Package::getPath<3>(pkg, { ".git", "hooks", "pre-push" });
+	std::ofstream fsGitHook(preHookPath);
+	if (fsGitHook.is_open()) {
+		fsGitHook << "#!/bin/bash" << std::endl;
+		fsGitHook << "if [ \"$CPPM_ENABLE_GIT\" -eq 1 ]; then" << std::endl;
+		fsGitHook << "    echo \"You may want to consider using 'cppm push' instead of 'git push'\"" << std::endl;
+		fsGitHook << "    echo \"To understand why, please run 'cppm help push'\"" << std::endl;
+		fsGitHook << "    echo \"If you want to use git push anyway, set env variable CPPM_ENABLE_GIT=1 (export CPPM_ENABLE_GIT=1)\"" << std::endl;
+		fsGitHook << "    exit 1" << std::endl;
+		fsGitHook << "fi\n" << std::endl;
+		fsGitHook << "exit 0" << std::endl;
+
+		fsGitHook.close();
+	}
+
+	// make it executable
+	const auto preHookPermissions =
+		std::filesystem::perms::owner_all |
+		std::filesystem::perms::group_all |
+		std::filesystem::perms::others_exec;
+	std::filesystem::permissions(preHookPath, preHookPermissions);
+
 
 	// store to registry
 	Package::addToRegistry(pkg);
@@ -780,6 +806,35 @@ bool Package::checkPath(const std::filesystem::path& path, bool asManaged, bool 
 	std::cout << "Package valid" << std::endl;
 	
 	return true;
+}
+
+void Package::push(const Package &pkg)
+{
+	// check if .git directory exists
+	const auto gitDir = Package::getPath<1>(pkg, { ".git" });
+	if (!std::filesystem::exists(gitDir)) {
+		std::cerr << ".git directory not found within package directory, aborted." << std::endl;
+		return;
+	}
+
+	Package::materializeDependencies(pkg);
+
+	// get value of CPPM_ENABLE_GIT
+	// user may have set it to "1", we want to restore it to what it was later
+	const char* userEnableGitValue = strlen(getenv("CPPM_ENABLE_GIT")) == 0 ? "0" : getenv("CPPM_ENABLE_GIT");
+
+	// enable 'git push'
+	setenv("CPPM_ENABLE_GIT", "1", 1);
+
+	// push to remote
+	const auto pkgDir = Package::getPath(pkg);
+	const std::string command = "cd" + pkgDir.string() + " && git push";
+	utils::system::runCommand(command);
+
+	// restore initial value of CPPM_ENABLE_GIT
+	setenv("CPPM_ENABLE_GIT", userEnableGitValue, 1);
+
+	Package::unmaterializeDependencies(pkg);
 }
 
 bool Package::checkAll()
