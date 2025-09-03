@@ -145,6 +145,26 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 		}
 	},
 	{
+		.command = "check",
+		.alias = "",
+		.description = "Check package(s) integrity. Non-managed packages only need to exist on the file system. Managed packages must contain structure:\n|-src\n|+includes\n|--src\n|--lib\n|-premake5.lua (only if strict check)",
+		.descriptionShort = "Check package(s) integrity",
+		.arguments = {
+			{
+				.name = "--all",
+				.description = "Check all packages",
+				.required = false,
+				.list = false
+			},
+			{
+				.name = "packageName",
+				.description = "Package name(s) to check. Required, unless --all specified or within a managed package directory in which case current package is assumed.",
+				.required = false,
+				.list = true
+			}
+		}
+	},
+	{
 		.command = "help",
 		.alias = "",
 		.description = "List available commands, specify command to show details about it's usage.\n\nArgument syntax:\n? - argument is optional (although it may require you to be within a package dir)\n... - you can list multiple arguments at once",

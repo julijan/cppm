@@ -261,11 +261,39 @@ int main(int argc, const char* argv[]) {
 		return 0;
 	}
 
-	if (strcmp(command, "verify") == 0) {
-		// verify package(s) making sure they exist and conform to registry
-		// no arguments: verify current package
-		// --all: verify all packages
-		// package list: verify listed packages
+	if (strcmp(command, "check") == 0) {
+		// check package(s) making sure they exist and conform to registry
+
+		if (argc == 2) {
+			// no arguments: check current package
+			if (!isPackage) {
+				std::cerr << "To use check without arguments you must be within a package directory." << std::endl;
+				return 0;
+			}
+
+			const Package& pkg = std::get<Package>(package);
+			Package::check(pkg, true);
+
+			return 0;
+		}
+
+		if (argc == 3 && strcmp(argv[2], "--all") == 0) {
+			// --all: check all packages
+			Package::checkAll();
+			return 0;
+		}
+
+		// package list: check listed packages
+		for (int i = 2; i < argc; i++) {
+			MaybePackage pkgMaybe = Package::get(argv[i]);
+			if (std::holds_alternative<PackageNotFound>(pkgMaybe)) {
+				std::cerr << "Package " << argv[i] << " not registered, skipping" << std::endl;
+				continue;
+			}
+			const Package& pkg = std::get<Package>(pkgMaybe);
+			Package::check(pkg, true);
+			return 0;
+		}
 	}
 
 	if (strcmp(command, "refresh") == 0) {

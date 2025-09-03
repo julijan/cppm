@@ -50,6 +50,9 @@ public:
 	template <int Depth>
 	static std::filesystem::path getPath(const Package& pkg, SmartArray<const char*, Depth> subdirs);
 
+	// return package path
+	static std::filesystem::path getPath(const Package& pkg);
+
 	// registers given path as a non-managed package
 	static void registerPackage(const std::filesystem::path& p);
 
@@ -141,6 +144,15 @@ public:
 
 	// build given package
 	static bool build(const Package& pkg);
+
+	// verify package integrity
+	// non-managed: must exist on the filesystem
+	// managed must exist on the filesystem and:
+	// have /src
+	// have premake5.lua (if strict = true)
+	static bool check(const Package& pkg, bool strict);
+
+	static bool checkAll();
 
 	// returns project in given path, or path containing given path
 	// for example, project in /a will be returned by path /a or /a/b or /a/b/c but wont by /b/c

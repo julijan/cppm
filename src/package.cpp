@@ -157,6 +157,11 @@ std::filesystem::path Package::getPath(const Package& pkg, SmartArray<const char
 	return p;
 }
 
+std::filesystem::path Package::getPath(const Package &pkg)
+{
+	return Package::getPath<0>(pkg, {});
+}
+
 void Package::registerPackage(const std::filesystem::path &p)
 {
 	// make sure a package in this path is not already registered
@@ -570,6 +575,84 @@ bool Package::build(const Package &pkg)
 	// build
 	std::cout << "Compiling..." << std::endl;
 	return utils::system::runCommand("cd " + pkg.path + " && make") == 0;
+}
+
+bool Package::check(const Package &pkg, bool strict)
+{
+
+	std::cout << "Checking " << (pkg.managed ? "managed" : "non-managed") << " package " << pkg.name << std::endl;
+
+	auto path = Package::getPath(pkg);
+	bool existsOnFilesystem = std::filesystem::exists(path);
+
+	if (!existsOnFilesystem) {
+		std::cerr << "Package " << pkg.name << " not found in " << path << std::endl;
+		return false;
+	}
+
+	if (!pkg.managed) {
+		// non managed packages only need to exist in the file system
+		return true;
+	}
+
+	// managed package checks
+
+	// check for /src
+	auto srcPath = Package::getPath<1>(pkg, { "src" });
+	if (!std::filesystem::exists(srcPath)) {
+		std::cerr << "Package " << pkg.name << " is missing it's /src directory" << std::endl;
+		return false;
+	}
+
+	// check for /includes
+	auto includesPath = Package::getPath<1>(pkg, { "includes" });
+	if (!std::filesystem::exists(includesPath)) {
+		std::cerr << "Package " << pkg.name << " is missing it's /includes directory" << std::endl;
+		return false;
+	}
+
+	// check for /includes/src
+	auto includesSrcPath = Package::getPath<2>(pkg, { "includes", "src" });
+	if (!std::filesystem::exists(includesSrcPath)) {
+		std::cerr << "Package " << pkg.name << " is missing it's /includes/src directory" << std::endl;
+		return false;
+	}
+
+	// check for /includes/lib
+	auto includesLibPath = Package::getPath<2>(pkg, { "includes", "lib" });
+	if (!std::filesystem::exists(includesLibPath)) {
+		std::cerr << "Package " << pkg.name << " is missing it's /includes/lib directory" << std::endl;
+		return false;
+	}
+
+	if (strict) {
+		// strict mode checks for files that can be generated, so they don't have to exist
+		// in strict mode, must contain premake5.lua
+		auto luaPath = Package::getPath<1>(pkg, { "premake5.lua" });
+		if (!std::filesystem::exists(luaPath)) {
+			std::cerr << "Package " << pkg.name << " is missing premake5.lua" << std::endl;
+			return false;
+		}
+	}
+
+	std::cout << "Package " << pkg.name << " valid" << std::endl;
+
+	return true;
+}
+
+bool Package::checkAll()
+{
+	bool foundInvalid = false;
+	std::vector<Package> packages = Package::packages();
+	for (const Package& pkg: packages) {
+		bool valid = Package::check(pkg, true);
+		if (!valid) {
+			foundInvalid = true;
+		}
+		std::cout << std::endl;
+	}
+
+	return !foundInvalid;
 }
 
 bool Package::generateCmake(const Package &pkg)
