@@ -33,11 +33,12 @@ namespace help {
 	{
 		std::string arglist = "";
 		for (const HelpArguments& arg: item.arguments) {
-			arglist += " [";
+			arglist += " ";
+			arglist += (arg.literal ? "" : "[");
 			arglist += (arg.required ? "" : "?");
 			arglist += (arg.list ? "..." : "");
 			arglist += arg.name;
-			arglist += "]";
+			arglist += (arg.literal ? "" : "]");
 		}
 		if (shortDescription) {
 			std::cout << "  " << item.command << arglist << " - " << item.descriptionShort << std::endl;
@@ -60,7 +61,7 @@ namespace help {
 			} else {
 				std::cout << "Arguments:" << std::endl;
 				for (const HelpArguments& arg: item.arguments) {
-					std::cout << "    [" << (arg.required ? "" : "?") << arg.name << "] - " << arg.description << std::endl;
+					std::cout << "    " << (arg.literal ? "" : "[") << (arg.required ? "" : "?") << arg.name << (arg.literal ? "" : "]") << " - " << arg.description << std::endl;
 				}
 			}
 		}

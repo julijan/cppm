@@ -7,6 +7,7 @@ struct HelpArguments {
 	const char* description;
 	bool required;
 	bool list;
+	bool literal;
 };
 
 struct HelpItem {
@@ -28,7 +29,8 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 				.name = "packageName",
 				.description = "unique identifier for your managed package",
 				.required = true,
-				.list = false
+				.list = false,
+				.literal = false
 			}
 		}
 	},
@@ -42,7 +44,8 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 				.name = "srcName",
 				.description = "file name(s) to create",
 				.required = true,
-				.list = true
+				.list = true,
+				.literal = false
 			}
 		}
 	},
@@ -63,7 +66,8 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 				.name = "packageName",
 				.description = "Required unless command is executed in a package directory, in which case description for current package is shown",
 				.required = false,
-				.list = false
+				.list = false,
+				.literal = false
 			}
 		}
 	},
@@ -77,7 +81,8 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 				.name = "packageName",
 				.description = "Package(s) to be included",
 				.required = true,
-				.list = true
+				.list = true,
+				.literal = false
 			}
 		}
 	},
@@ -91,7 +96,8 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 				.name = "packageName",
 				.description = "Package(s) to be excluded",
 				.required = true,
-				.list = true
+				.list = true,
+				.literal = false
 			}
 		}
 	},
@@ -112,7 +118,8 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 				.name = "packageName",
 				.description = "Package name to unregister. Required, unless you are within the package directory in which case, if ommitted, current package is assumed",
 				.required = false,
-				.list = true
+				.list = true,
+				.literal = false
 			}
 		}
 	},
@@ -126,7 +133,8 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 				.name = "packageName",
 				.description = "Package name(s) to generate configuration for. Required, unless in a managed package directory in which case current package is assumed",
 				.required = false,
-				.list = true
+				.list = true,
+				.literal = false
 			}
 		}
 	},
@@ -140,7 +148,8 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 				.name = "packageName",
 				.description = "Package name(s) to compile. Required, unless in a managed package directory in which case current package is assumed",
 				.required = false,
-				.list = true
+				.list = true,
+				.literal = false
 			}
 		}
 	},
@@ -154,27 +163,30 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 				.name = "--all",
 				.description = "Check all packages",
 				.required = false,
-				.list = false
+				.list = false,
+				.literal = true
 			},
 			{
 				.name = "packageName",
 				.description = "Package name(s) to check. Required, unless --all specified or within a managed package directory in which case current package is assumed.",
 				.required = false,
-				.list = true
+				.list = true,
+				.literal = false
 			}
 		}
 	},
 	{
 		.command = "help",
 		.alias = "",
-		.description = "List available commands, specify command to show details about it's usage.\n\nArgument syntax:\n? - argument is optional (although it may require you to be within a package dir)\n... - you can list multiple arguments at once",
+		.description = "List available commands, specify command to show details about it's usage.\n\nArgument syntax:\n? - argument is optional (although it may require you to be within a package dir)\n... - you can list multiple arguments at once\n[] - argument is a variable, not a literal",
 		.descriptionShort = "List available commands, specify command to show details about it's usage",
 		.arguments = {
 			{
 				.name = "command",
 				.description = "If included show detailed description related to the command, otherwise list commands with a short description",
 				.required = false,
-				.list = false
+				.list = false,
+				.literal = false
 			}
 		}
 	}
