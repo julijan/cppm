@@ -1268,19 +1268,33 @@ std::string Package::typeToString(PackageType t) {
 	return "";
 }
 
-void Package::listDependencies(Package &pkg)
+void Package::listDependencies(const Package &pkg)
 {
 	if (pkg.dependencies.size() == 0) {
 		std::cout << "No dependencies" << std::endl;
 	} else {
 		std::cout << "+ Dependencies:" << std::endl;
-		for (std::string& depName: pkg.dependencies) {
+		for (const std::string& depName: pkg.dependencies) {
 			std::cout << "|- " << depName << std::endl;
 		}
 	}
 }
 
-void Package::display(Package& pkg)
+void Package::listDependents(const Package &pkg)
+{
+	const std::vector<Package> dependents = Package::dependents(pkg.name.c_str());
+
+	if (dependents.size() == 0) {
+		std::cout << "No dependents" << std::endl;
+	} else {
+		std::cout << "+ Dependents:" << std::endl;
+		for (const Package& dep: dependents) {
+			std::cout << "|- " << dep.name << std::endl;
+		}
+	}
+}
+
+void Package::display(const Package& pkg)
 {
 	std::cout << "Package name: " << pkg.name << std::endl;
 	std::cout << "Version: " << pkg.version << std::endl;
@@ -1288,11 +1302,12 @@ void Package::display(Package& pkg)
 	std::cout << "Path: " << pkg.path << std::endl;
 
 	Package::listDependencies(pkg);
+	Package::listDependents(pkg);
 
 	if ((pkg.type == PackageType::StaticLib || pkg.type == PackageType::SharedLib) && pkg.linkableObjects.size() > 0) {
 		// show linkable objects
 		std::cout << "Linkable objects:" << std::endl;
-		for (std::string& objName: pkg.linkableObjects) {
+		for (const std::string& objName: pkg.linkableObjects) {
 			std::cout << "|- " << objName << std::endl;
 		}
 	}

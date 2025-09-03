@@ -59,7 +59,7 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 	{
 		.command = "show",
 		.alias = "",
-		.description = "Show package details, which include:\nPackage name: string\nVersion: string\nType: PackageType\nPath: string\nDependencies: list\n\nProjectType: ConsoleApp | WindowedApp | StaticLib | SharedLib",
+		.description = "Show package details, which include:\nPackage name: string\nVersion: string\nType: PackageType\nPath: string\nDependencies: list\nDependents: list\n\nProjectType: ConsoleApp | WindowedApp | StaticLib | SharedLib",
 		.descriptionShort = "Show package details",
 		.arguments = {
 			{

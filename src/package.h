@@ -199,10 +199,13 @@ public:
 	static std::string typeToString(PackageType t);
 
 	// list dependencies of given Package
-	static void listDependencies(Package& pkg);
+	static void listDependencies(const Package& pkg);
+
+	// list dependents of given Package
+	static void listDependents(const Package& pkg);
 
 	// display package details given Package instance
-	static void display(Package& pkg);
+	static void display(const Package& pkg);
 
 	// display package details given package name
 	static void display(const char* const name);
