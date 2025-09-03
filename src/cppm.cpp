@@ -322,6 +322,65 @@ int main(int argc, const char* argv[]) {
 		// open project in IDE
 	}
 
+	if (strcmp(command, "materialize") == 0) {
+		// materialize dependencies
+		if (argc == 2) {
+
+			if (!isPackage) {
+				std::cerr << "Not within package and package name not provided" << std::endl;
+				return 0;
+			}
+
+			// materialize current package
+			const Package pkg = std::get<Package>(package);
+			Package::materializeDependencies(pkg);
+
+			return 0;
+		}
+
+		for (int i = 2; i < argc; i++) {
+			MaybePackage pkg = Package::get(argv[i]);
+			if (std::holds_alternative<PackageNotFound>(pkg)) {
+				std::cerr << "Skipped package " << argv[i] << ", not found" << std::endl;
+				continue;
+			}
+			Package::materializeDependencies(std::get<Package>(pkg));
+		}
+	}
+
+	if (strcmp(command, "unmaterialize") == 0) {
+		// unmaterialize dependencies
+		if (argc == 2) {
+
+			if (!isPackage) {
+				std::cerr << "Not within package and package name not provided" << std::endl;
+				return 0;
+			}
+
+			// materialize current package
+			const Package pkg = std::get<Package>(package);
+			Package::unmaterializeDependencies(pkg);
+
+			return 0;
+		}
+
+		for (int i = 2; i < argc; i++) {
+			MaybePackage pkg = Package::get(argv[i]);
+			if (std::holds_alternative<PackageNotFound>(pkg)) {
+				std::cerr << "Skipped package " << argv[i] << ", not found" << std::endl;
+				continue;
+			}
+			Package::unmaterializeDependencies(std::get<Package>(pkg));
+		}
+	}
+
+	if (strcmp(command, "push") == 0) {
+		// push to remote
+		// this will first materialize dependencies and then push
+		// otherwise the project on remote will contain symlinks pointing to non-existent data
+		// after push, dependencies will get de-materialized
+	}
+
 	if (strcmp(command, "help") == 0) {
 		// no args: list commands with description
 		if (argc == 2) {

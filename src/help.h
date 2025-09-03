@@ -184,6 +184,36 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 		}
 	},
 	{
+		.command = "materialize",
+		.alias = "",
+		.description = "By default, cppm creates symbolic links in includes directory to link the dependencies to your package. This works for local compilation and development, but such package is not portable and will fail to compile if shared as such. When you run materialize, it copies all dependecy files into includes directory, producing a portable and distributable package, which should compile on any compatible system. You can revert this operation using unmaterialize command.",
+		.descriptionShort = "Produce portable package by copying all dependecy files into includes directory",
+		.arguments = {
+			{
+				.name = "packageName",
+				.description = "Package name(s) to materialize. Required, unless within a managed package directory in which case current package is assumed.",
+				.required = false,
+				.list = true,
+				.literal = false
+			}
+		}
+	},
+	{
+		.command = "unmaterialize",
+		.alias = "",
+		.description = "Removes previously materialized dependency files from includes directory and re-establishes them as symbolic links. This produces a leaner and dynamic package, but it is not portable is such state. Use this if you previously used materialize to produce a distributable package, and want to resume development.",
+		.descriptionShort = "Link dependencies using symbolic links",
+		.arguments = {
+			{
+				.name = "packageName",
+				.description = "Package name(s) to unmaterialize. Required, unless within a managed package directory in which case current package is assumed.",
+				.required = false,
+				.list = true,
+				.literal = false
+			}
+		}
+	},
+	{
 		.command = "help",
 		.alias = "",
 		.description = "List available commands, specify command to show details about it's usage.\n\nArgument syntax:\n? - argument is optional (although it may require you to be within a package dir)\n... - you can list multiple arguments at once\n[] - argument is a variable, not a literal",

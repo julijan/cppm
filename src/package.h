@@ -38,6 +38,10 @@ public:
 	// create a project (managed package)
 	static void create(const char* const name);
 
+	// creates /includes, /includes/src and /includes/lib
+	static void createIncludesDirectories(const Package& pkg);
+	static void createIncludesDirectories(const std::filesystem::path& p);
+
 	// return package path
 	// subdirs is an array of subdirectories within the package path
 	// eg. ["includes", "lib"] -> [package.path]/includes/lib
@@ -106,6 +110,9 @@ public:
 	// return package dependencies
 	static std::vector<Package> getDependencies(const char* const name);
 
+	// return package dependencies
+	static std::vector<Package> getDependencies(const Package& pkg);
+
 	// add dep as dependency of pkg
 	static void addDependency(Package& pkg, Package& dep);
 
@@ -118,6 +125,9 @@ public:
 	// remove name as dependency of given Package
 	static void removeDependency(Package& pkg, const char* const name);
 
+	// (re)create links for all package dependencies
+	static void linkDependencies(const Package&pkg);
+
 	// check if depName is a dependency of pkg
 	static bool isDependency(Package&pkg, const char* const depName);
 
@@ -126,6 +136,16 @@ public:
 
 	// check if depName is a dependency of pkgName
 	static bool isDependency(const char* const pkgName, const char* const depName);
+
+	// materialize dependencies
+	// copy contents of all dependencies into includes directory instead of symlinks
+	// this makes the project portable but consumes more space
+	// used before cppm push
+	static void materializeDependencies(const Package& pkg);
+
+	// unmaterialize dependencies
+	// reverse of materialize dependencies, deletes everything from includes and creates symbolic links
+	static void unmaterializeDependencies(const Package& pkg);
 
 	// returns packages that depend on given package
 	static std::vector<Package> dependents(const char* const name);
