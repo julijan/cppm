@@ -149,12 +149,7 @@ template <int Depth>
 std::filesystem::path Package::getPath(const Package& pkg, SmartArray<const char*, Depth> subdirs)
 {
 	std::filesystem::path p(pkg.path);
-
-	for (const char* subdir: subdirs) {
-		p.append(subdir);
-	}
-
-	return p;
+	return utils::fs::extendPath<Depth>(p, subdirs);
 }
 
 std::filesystem::path Package::getPath(const Package &pkg)
@@ -162,7 +157,7 @@ std::filesystem::path Package::getPath(const Package &pkg)
 	return Package::getPath<0>(pkg, {});
 }
 
-void Package::registerPackage(const std::filesystem::path &p)
+void Package::registerPackage(const std::filesystem::path &p, bool managed)
 {
 	// make sure a package in this path is not already registered
 	MaybePackage existing = Package::includesPath(p);
@@ -171,6 +166,36 @@ void Package::registerPackage(const std::filesystem::path &p)
 		Package existingPkg = std::get<Package>(existing);
 		std::cerr << existingPkg.name << " already registered at path " << existingPkg.path << std::endl;
 		return;
+	}
+
+	// if registering as managed package, make sure the package is valid
+	if (managed && !Package::checkPath(p, true, false)) {
+		// attempted to register directory as a managed package
+		// directory is not package-like
+		// offer to interactively fix package
+		std::cout << "Current directory does not conform to managed package structure. Do you want to interactively fix it so you can proceed with the operation? (Y)Yes / (N)No" << std::endl;
+		char action;
+		while (true) {
+			std::cin >> action;
+			if (action == 'N' || action == 'n') {
+				// user canceled
+				return;
+			}
+
+			if (action == 'Y' || action == 'y') {
+				// proceed
+				break;
+			}
+		}
+		Package::fixPath(p);
+
+		if (!Package::checkPath(p, true, false)) {
+			// still does not conform
+			std::cout << "Directory still does not conform, if you approved all fixes and you see this, report an issue" << std::endl;
+			return;
+		}
+
+		// if we are here, user managed to make the directory conform to managed packaege structure
 	}
 
 	// no existing package in the path, ok to register
@@ -191,7 +216,7 @@ void Package::registerPackage(const std::filesystem::path &p)
 		}
 	}
 
-	std::cout << "Registering current path as a package with name " << assumedName << std::endl;
+	std::cout << "Registering current path as a " << (managed ? "managed" : "non-managed") << " package with name " << assumedName << std::endl;
 	std::cout << "If you want to use a different name please enter it bellow and press enter, leave blank to use " << assumedName << std::endl;
 
 	// prompt for alternative name
@@ -207,13 +232,13 @@ void Package::registerPackage(const std::filesystem::path &p)
 		nameFinal = assumedName;
 	}
 
-	PackageType pType = Package::typeFromString(Package::promptType(true).c_str());
+	PackageType pType = Package::typeFromString(Package::promptType(!managed).c_str());
 
 	Package pkg(
 		nameFinal,
 		p,
 		pType,
-		false
+		managed
 	);
 
 	// register the package
@@ -583,60 +608,65 @@ bool Package::check(const Package &pkg, bool strict)
 	std::cout << "Checking " << (pkg.managed ? "managed" : "non-managed") << " package " << pkg.name << std::endl;
 
 	auto path = Package::getPath(pkg);
-	bool existsOnFilesystem = std::filesystem::exists(path);
+	return Package::checkPath(path, pkg.managed, strict);
+}
 
+bool Package::checkPath(const std::filesystem::path& path, bool asManaged, bool strict)
+{
+	bool existsOnFilesystem = std::filesystem::exists(path);
+	
 	if (!existsOnFilesystem) {
-		std::cerr << "Package " << pkg.name << " not found in " << path << std::endl;
+		std::cerr << "Not found in " << path << std::endl;
 		return false;
 	}
-
-	if (!pkg.managed) {
+	
+	if (!asManaged) {
 		// non managed packages only need to exist in the file system
 		return true;
 	}
-
+	
 	// managed package checks
-
+	
 	// check for /src
-	auto srcPath = Package::getPath<1>(pkg, { "src" });
+	auto srcPath = utils::fs::extendPath<1>(path, { "src" });
 	if (!std::filesystem::exists(srcPath)) {
-		std::cerr << "Package " << pkg.name << " is missing it's /src directory" << std::endl;
+		std::cerr << "Package is missing it's /src directory" << std::endl;
 		return false;
 	}
-
+	
 	// check for /includes
-	auto includesPath = Package::getPath<1>(pkg, { "includes" });
+	auto includesPath = utils::fs::extendPath<1>(path, { "includes" });
 	if (!std::filesystem::exists(includesPath)) {
-		std::cerr << "Package " << pkg.name << " is missing it's /includes directory" << std::endl;
+		std::cerr << "Package is missing it's /includes directory" << std::endl;
 		return false;
 	}
-
+	
 	// check for /includes/src
-	auto includesSrcPath = Package::getPath<2>(pkg, { "includes", "src" });
+	auto includesSrcPath = utils::fs::extendPath<2>(path, { "includes", "src" });
 	if (!std::filesystem::exists(includesSrcPath)) {
-		std::cerr << "Package " << pkg.name << " is missing it's /includes/src directory" << std::endl;
+		std::cerr << "Package is missing it's /includes/src directory" << std::endl;
 		return false;
 	}
-
+	
 	// check for /includes/lib
-	auto includesLibPath = Package::getPath<2>(pkg, { "includes", "lib" });
+	auto includesLibPath = utils::fs::extendPath<2>(path, { "includes", "lib" });
 	if (!std::filesystem::exists(includesLibPath)) {
-		std::cerr << "Package " << pkg.name << " is missing it's /includes/lib directory" << std::endl;
+		std::cerr << "Package is missing it's /includes/lib directory" << std::endl;
 		return false;
 	}
-
+	
 	if (strict) {
 		// strict mode checks for files that can be generated, so they don't have to exist
 		// in strict mode, must contain premake5.lua
-		auto luaPath = Package::getPath<1>(pkg, { "premake5.lua" });
+		auto luaPath = utils::fs::extendPath<1>(path, { "premake5.lua" });
 		if (!std::filesystem::exists(luaPath)) {
-			std::cerr << "Package " << pkg.name << " is missing premake5.lua" << std::endl;
+			std::cerr << "Package is missing premake5.lua" << std::endl;
 			return false;
 		}
 	}
-
-	std::cout << "Package " << pkg.name << " valid" << std::endl;
-
+	
+	std::cout << "Package valid" << std::endl;
+	
 	return true;
 }
 
@@ -653,6 +683,38 @@ bool Package::checkAll()
 	}
 
 	return !foundInvalid;
+}
+
+void Package::fixPath(const std::filesystem::path &path)
+{
+	// define required paths
+	std::vector<std::filesystem::path> pathsRequired = {
+		path,
+		utils::fs::extendPath<1>(path, { "src" }),
+		utils::fs::extendPath<1>(path, { "includes" }),
+		utils::fs::extendPath<2>(path, { "includes", "src" }),
+		utils::fs::extendPath<2>(path, { "includes", "lib" })
+	};
+
+	// check each required path
+	for (std::filesystem::path& pathRequired: pathsRequired) {
+		if (!std::filesystem::exists(pathRequired)) {
+			std::cout << "Create directory " << pathRequired << "? (Y)Yes / (N)No" << std::endl;
+			char action;
+			while (true) {
+				std::cin >> action;
+				if (action == 'Y' || action == 'y') {
+					std::filesystem::create_directory(pathRequired);
+					break;
+				}
+
+				if (action == 'N' || action == 'n') {
+					// won't conform, but it was user's choice
+					break;
+				}
+			}
+		}
+	}
 }
 
 bool Package::generateCmake(const Package &pkg)

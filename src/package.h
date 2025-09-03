@@ -54,7 +54,7 @@ public:
 	static std::filesystem::path getPath(const Package& pkg);
 
 	// registers given path as a non-managed package
-	static void registerPackage(const std::filesystem::path& p);
+	static void registerPackage(const std::filesystem::path& p, bool managed);
 
 	// unregisters given package
 	static void unregisterPackage(const char* const name);
@@ -153,6 +153,12 @@ public:
 	static bool check(const Package& pkg, bool strict);
 
 	static bool checkAll();
+
+	// does given path contain a package-like structure
+	static bool checkPath(const std::filesystem::path& path, bool asManaged, bool strict);
+
+	// interactively fix path - make given path conform to managed-package structure
+	static void fixPath(const std::filesystem::path& path);
 
 	// returns project in given path, or path containing given path
 	// for example, project in /a will be returned by path /a or /a/b or /a/b/c but wont by /b/c

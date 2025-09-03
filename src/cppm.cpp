@@ -149,8 +149,9 @@ int main(int argc, const char* argv[]) {
 	}
 
 	if (strcmp(command, "register") == 0) {
-		// register current path as a non-managed package
-		Package::registerPackage(path);
+		bool asManaged = strcmp(argv[2], "managed") == 0;
+		// register current path as a package
+		Package::registerPackage(path, asManaged);
 		return 0;
 	}
 

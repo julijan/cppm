@@ -104,9 +104,17 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 	{
 		.command = "register",
 		.alias = "",
-		.description = "Register a 3rd party code as a non-managed package. This allows you to easily include it in your managed packages using include. To use this, cd to 3rd party package directory and run cppm register. You will be able to assign a name to package when you run the command, assumed name is the directory name. Good example for using this is if you use vcpkg or other package managers, you can register the installed packages, and include them with a single command. See cppm help include for details on how to include packages.",
-		.descriptionShort = "Register a 3rd party code as a package",
-		.arguments = {}
+		.description = "Register current directory as a package. By default, package is assumed to be 3rd party code (a non-managed package), if you want to turn one of your existing codebases into a managed package, you can specify \"managed\" argument. Once package is registered, you can use it from your packages using include command (cppm help include). You will be able to assign a name to package when you run the command, assumed name is the directory name. Good example for using this without managed argument is if you use vcpkg or other package managers, you can register the installed packages, and include them with a single command.",
+		.descriptionShort = "Register current directory as a package",
+		.arguments = {
+			{
+				.name = "managed",
+				.description = "Register as managed package",
+				.required = false,
+				.list = false,
+				.literal = true
+			}
+		}
 	},
 	{
 		.command = "unregister",
