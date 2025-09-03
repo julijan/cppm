@@ -25,3 +25,6 @@ struct PackageData {
 	bool managed;
 	int registeredAt;
 };
+
+template <typename T, unsigned int S>
+using SmartArray = std::array<T, S>;
