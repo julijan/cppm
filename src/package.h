@@ -128,8 +128,27 @@ public:
 	// remove name as dependency of given Package
 	static void removeDependency(Package& pkg, const char* const name);
 
+	// create symbolic links to dependency in package includes directory
+	static void linkDependency(const Package& pkg, const Package& dep);
+	
 	// (re)create links for all package dependencies
 	static void linkDependencies(const Package&pkg);
+
+	// remove symbolic links to dependency in package includes directory
+	static void unlinkDependency(const Package& pkg, const Package& dep);
+
+	// remove symbolic links to dependency in package includes directory
+	static void unlinkDependency(const Package& pkg, const char* depName);
+
+	// given the dependency package
+	// returns path that should be linked in includes/src directory of the dependent
+	// it dependes on whether the dependency is managed
+	static std::filesystem::path dependencyTargetIncludes(const Package& dep);
+
+	// given the dependency package
+	// returns path that should be linked in includes/lib directory of the dependent
+	// it dependes on whether the dependency is managed
+	static std::filesystem::path dependencyTargetLib(const Package& dep);
 
 	// check if depName is a dependency of pkg
 	static bool isDependency(Package&pkg, const char* const depName);

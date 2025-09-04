@@ -65,18 +65,17 @@ void Package::create(const char *const name)
 
 	// project dir does not exist, create it
 	try {
-		create_directory(projectDir);
+		std::filesystem::create_directory(projectDir);
 	} catch(std::filesystem::filesystem_error e) {
 		std::cerr << "Error creating project directory: " << e.what() << std::endl;
 	}
 
-	// create directories
+	// create sub-directories
 	std::filesystem::create_directory(utils::fs::extendPath<1>(projectDir, { "src" }));
 	Package::createIncludesDirectories(projectDir);
 
 	// select project type
 	std::string pType = Package::promptType(false);
-
 
 	// create instance
 	Package pkg(
@@ -221,23 +220,9 @@ void Package::move(Package &pkg, const std::filesystem::path toBare)
 
 	// update dependents
 	int depsUpdated = 0;
-	const std::filesystem::path pkgSrc = utils::fs::extendPath<1>(to, { "src" });
-	const std::filesystem::path pkgLib = utils::fs::extendPath<1>(to, { "bin" });
 	for (const Package& dependent: dependents) {
-		const auto pathToSrcIncludes = Package::getPath<3>(dependent, { "includes", "src", pkg.name.c_str() });
-		const auto pathToLibIncludes = Package::getPath<3>(dependent, { "includes", "lib", pkg.name.c_str() });
-
-		// remove existing symbolic links
-		if (std::filesystem::exists(pathToSrcIncludes)) {
-			std::filesystem::remove(pathToSrcIncludes);
-		}
-		if (std::filesystem::exists(pathToLibIncludes)) {
-			std::filesystem::remove(pathToLibIncludes);
-		}
-
-		// create new symbolic links
-		std::filesystem::create_symlink(pkgSrc, pathToSrcIncludes);
-		std::filesystem::create_symlink(pkgLib, pathToLibIncludes);
+		// create new symlinks
+		Package::linkDependency(dependent, pkg);
 
 		// keep track how many dependents were updated
 		depsUpdated++;
@@ -374,7 +359,7 @@ void Package::unregisterPackage(const char *const name)
 	if (dependents.size() > 0) {
 		std::cout << dependents.size() << " packages depend on " << name << std::endl;
 		std::cout << "If you unregister this package, it will be removed from dependency list of it's dependents, as a result, affected packages may not work as expected" << std::endl;
-		std::cout << "What do you want to do? (C)Cancel / (U)Unregister:";
+		std::cout << "What do you want to do? (C)Cancel / (U)Unregister:" << std::endl;
 
 		char action;
 		while (true) {
@@ -570,22 +555,7 @@ void Package::addDependency(Package &pkg, Package &dep)
 	Package::updateRegistry(pkg);
 
 	// create symbolic links
-	std::filesystem::path pkgPath = pkg.path;
-
-	// create symbolic link in /includes/src, used by includedirs
-	std::filesystem::path includesPath = std::filesystem::path(pkgPath).append("includes").append("src");
-	std::filesystem::path includesSymlinkPath = std::filesystem::path(includesPath).append(dep.name);
-
-	std::filesystem::path includesSymlinkTarget = std::filesystem::path(dep.path).append("src");
-	std::filesystem::create_directory_symlink(includesSymlinkTarget, includesSymlinkPath);
-
-	// create symbolic link in /includes/lib, used by libdirs
-	std::filesystem::path libsPath = std::filesystem::path(pkgPath).append("includes").append("lib");
-	std::filesystem::path libsSymlinkPath = std::filesystem::path(libsPath).append(dep.name);
-
-	std::filesystem::path libsSymlinkTarget = std::filesystem::path(dep.path).append("bin");
-	std::filesystem::create_directory_symlink(libsSymlinkTarget, libsSymlinkPath);
-
+	Package::linkDependency(pkg, dep);
 
 	// re-generate premake
 	Package::generatePremake(pkg);
@@ -620,14 +590,7 @@ void Package::removeDependency(Package &pkg, Package &dep)
 	pkg.dependencies.erase(end, pkg.dependencies.end());
 
 	// remove symlinks
-	std::filesystem::path includesSymlinkPath = std::filesystem::path(pkg.path).append("includes").append("src").append(dep.name);
-	std::filesystem::path libsSymlinkPath = std::filesystem::path(pkg.path).append("includes").append("lib").append(dep.name);
-	if (std::filesystem::exists(includesSymlinkPath)) {
-		std::filesystem::remove(includesSymlinkPath);
-	}
-	if (std::filesystem::exists(libsSymlinkPath)) {
-		std::filesystem::remove(libsSymlinkPath);
-	}
+	Package::unlinkDependency(pkg, dep);
 
 	// store to registry without dependency
 	Package::updateRegistry(pkg);
@@ -650,23 +613,76 @@ void Package::removeDependency(Package &pkg, const char *const name)
 	Package::removeDependency(pkg, std::get<Package>(dependency));
 }
 
+void Package::linkDependency(const Package &pkg, const Package &dep)
+{
+	// remove existing symlinks if they exist
+	Package::unlinkDependency(pkg, dep);
+
+	// create symbolic link in /includes/src, used by includedirs
+	const std::filesystem::path includesSymlinkPath = Package::getPath<3>(
+		pkg, { "includes", "src", dep.name.c_str() }
+	);
+	std::filesystem::path includesSymlinkTarget = Package::dependencyTargetIncludes(dep);
+
+	std::filesystem::create_directory_symlink(includesSymlinkTarget, includesSymlinkPath);
+
+	// create symbolic link in /includes/lib, used by libdirs
+	std::filesystem::path libsSymlinkPath = Package::getPath<3>(
+		pkg, { "includes", "lib", dep.name.c_str() }
+	);
+	std::filesystem::path libsSymlinkTarget = Package::dependencyTargetLib(dep);
+
+	std::filesystem::create_directory_symlink(libsSymlinkTarget, libsSymlinkPath);
+}
+
 void Package::linkDependencies(const Package &pkg)
 {
-
-	const auto pkgIncludeSrc = Package::getPath<2>(pkg, { "includes", "src" });
-	const auto pkgIncludeLib = Package::getPath<2>(pkg, { "includes", "lib" });
-
 	const std::vector<Package> dependencies = Package::getDependencies(pkg);
 	for (const Package& dep: dependencies) {
-		if (dep.managed) {
-			const auto depSrc = Package::getPath<1>(dep, { "src" });
-			const auto depLib = Package::getPath<1>(dep, { "bin" });
-
-			// create symlinks
-			std::filesystem::create_symlink(depSrc, utils::fs::extendPath<1>(pkgIncludeSrc, { dep.name.c_str() }));
-			std::filesystem::create_symlink(depLib, utils::fs::extendPath<1>(pkgIncludeLib, { dep.name.c_str() }));
-		}
+		// create symlinks
+		Package::linkDependency(pkg, dep);
 	}
+}
+
+void Package::unlinkDependency(const Package &pkg, const Package &dep)
+{
+	Package::unlinkDependency(pkg, dep.name.c_str());
+}
+
+void Package::unlinkDependency(const Package &pkg, const char *depName)
+{
+	const auto srcLink = Package::getPath<3>(pkg, { "includes", "src", depName });
+	const auto libLink = Package::getPath<3>(pkg, { "includes", "lib", depName });
+	if (std::filesystem::exists(srcLink)) {
+		std::filesystem::remove(srcLink);
+	}
+	if (std::filesystem::exists(libLink)) {
+		std::filesystem::remove(libLink);
+	}
+}
+
+std::filesystem::path Package::dependencyTargetIncludes(const Package &dep)
+{
+	std::filesystem::path pkgPath(Package::getPath(dep));
+	if (dep.managed) {
+		// use package's src dir
+		return utils::fs::extendPath<1>(pkgPath, { "src" });
+	}
+
+	// we don't know anything about non managed packages, so we always link entire package dir
+	return pkgPath;
+}
+
+std::filesystem::path Package::dependencyTargetLib(const Package &dep)
+{
+	std::filesystem::path pkgPath(Package::getPath(dep));
+	if (dep.managed) {
+		// use package's bin dir
+		return utils::fs::extendPath<1>(pkgPath, { "bin" });
+	}
+
+	// we don't know anything about non managed packages, so we always link entire package dir
+	return pkgPath;
 }
 
 bool Package::isDependency(Package &pkg, const char *const depName)
@@ -724,17 +740,10 @@ void Package::materializeDependencies(const Package &pkg)
 		Package::materializeDependencies(dep);
 
 		// copy contents of the dependency to includes
-		if (dep.managed) {
-			const std::filesystem::path depSrc = Package::getPath<1>(dep, { "src" });
-			const std::filesystem::path depLib = Package::getPath<1>(dep, { "bin" });
-			std::filesystem::copy(depSrc, utils::fs::extendPath<1>(includesSrc, { depName.c_str() }));
-			std::filesystem::copy(depLib, utils::fs::extendPath<1>(includesLib, { depName.c_str() }));
-		} else {
-			// for non-managed, we don't know the structure, copy entire directory to both src and lib
-			const std::filesystem::path depPath = Package::getPath(dep);
-			std::filesystem::copy(depPath, utils::fs::extendPath<1>(includesSrc, { depName.c_str() }));
-			std::filesystem::copy(depPath, utils::fs::extendPath<1>(includesLib, { depName.c_str() }));
-		}
+		const std::filesystem::path depSrc = Package::dependencyTargetIncludes(dep);
+		const std::filesystem::path depLib = Package::dependencyTargetLib(dep);
+		std::filesystem::copy(depSrc, utils::fs::extendPath<1>(includesSrc, { depName.c_str() }));
+		std::filesystem::copy(depLib, utils::fs::extendPath<1>(includesLib, { depName.c_str() }));
 
 		// un-materialize dependency
 		Package::unmaterializeDependencies(dep);
