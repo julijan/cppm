@@ -1026,11 +1026,13 @@ void Package::generatePremake(const Package &pkg)
 			// include links in premake
 			fstream << "\tlinks {" << std::endl;
 
-			for (std::string& link: linked) {
-				fstream << "\t\t\"" << link  << '"' << std::endl;
+			for (int i = 0; i < linked.size(); i++) {
+				std::string& link = linked[i];
+				bool last = i == linked.size() - 1;
+				fstream << "\t\t\"" << link  << '"' << (last ? "" : ",") << std::endl;
 			}
 
-			fstream << "\t}";
+			fstream << "\t}\n" << std::endl;
 		}
 	}
 
