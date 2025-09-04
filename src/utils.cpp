@@ -94,6 +94,57 @@ namespace utils {
 
 			return output;
 		}
+
+		std::vector<std::string> split(const std::string &str, const std::string &separator)
+		{
+			std::vector<std::string> tokens;
+			std::string token;
+			std::string possiblySeparator;
+
+			int separatorCharsMatched = 0;
+
+			for (int i = 0; i < str.length(); i++) {
+				char c = str[i];
+
+				if (separator.length() == 0) {
+					// empty separator, always splits
+					token = c;
+					tokens.push_back(token);
+					token.clear();
+					continue;
+				}
+
+				char expectedSeparatorChar = separator[separatorCharsMatched];
+
+				if (c == expectedSeparatorChar) {
+					// resuming potential separator
+					separatorCharsMatched++;
+					possiblySeparator += c;
+
+					if (separatorCharsMatched == separator.length()) {
+						// entire separator matched
+						separatorCharsMatched = 0;
+						tokens.push_back(token);
+						token.clear();
+						possiblySeparator.clear();
+						continue;
+					}
+
+					continue;
+				} else {
+					// separator sequence broken
+					token += possiblySeparator;
+					separatorCharsMatched = 0;
+					possiblySeparator.clear();
+				}
+
+				token += c;
+			}
+
+			tokens.push_back(token);
+
+			return tokens;
+		}
 	}
 
 	namespace fs {

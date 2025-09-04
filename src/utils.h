@@ -30,6 +30,9 @@ namespace utils {
 		// toWidth will insert a line break every charWidth chars, unless strict = false
 		// in which case it will avoid breaking words while still trying to get close to desired width
 		std::string toWidth(const std::string str, unsigned int charWidth, bool strict);
+
+		// split given string at given separator, separator can be of any length
+		std::vector<std::string> split(const std::string& str, const std::string& separator);
 	}
 
 	namespace fs {
