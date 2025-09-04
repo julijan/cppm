@@ -43,16 +43,18 @@ namespace utils {
 			for (int i = 0; i < str.length(); i++) {
 				if (str[i] == ' ' || str[i] == '\n' || str[i] == '\t') {continue;}
 				start = i;
+				break;
 			}
 			
 			for (int i = str.length() - 1; i > -1; i--) {
 				if (str[i] == ' ' || str[i] == '\n' || str[i] == '\t') {continue;}
 				end = i;
+				break;
 			}
 
 			if (start == end) {return out;}
 
-			return str.substr(start, end);
+			return str.substr(start, end + 1);
 		}
 
 		std::string toWidth(const std::string str, unsigned int charWidth, bool strict)
