@@ -206,6 +206,11 @@ public:
 	// after push it un-materializes dependencies
 	static void push(const Package& pkg);
 
+	// recursively run "git update-index --assume-unchanged" on each file in given directory
+	// executed during push on package's include directory to achieve desired flow
+	// we want includes to be tracked by git only while push is running, then it should forget about includes
+	static void gitSetTrackIncludes(const Package& pkg, bool track, Maybe<std::filesystem::path> pathCurrent);
+
 	static bool checkAll();
 
 	// does given path contain a package-like structure

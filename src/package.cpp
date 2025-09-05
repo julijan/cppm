@@ -97,7 +97,7 @@ void Package::create(const char *const name)
 	std::ofstream fsGitHook(preHookPath);
 	if (fsGitHook.is_open()) {
 		fsGitHook << "#!/bin/bash" << std::endl;
-		fsGitHook << "if [ \"$CPPM_ENABLE_GIT\" -eq 1 ]; then" << std::endl;
+		fsGitHook << "if [ \"$CPPM_ENABLE_GIT\" != \"1\" ]; then" << std::endl;
 		fsGitHook << "    echo \"You may want to consider using 'cppm push' instead of 'git push'\"" << std::endl;
 		fsGitHook << "    echo \"To understand why, please run 'cppm help push'\"" << std::endl;
 		fsGitHook << "    echo \"If you want to use git push anyway, set env variable CPPM_ENABLE_GIT=1 (export CPPM_ENABLE_GIT=1)\"" << std::endl;
@@ -793,8 +793,16 @@ void Package::materializeDependencies(const Package &pkg)
 		// copy contents of the dependency to includes
 		const std::filesystem::path depSrc = Package::dependencyTargetIncludes(dep);
 		const std::filesystem::path depLib = Package::dependencyTargetLib(dep);
-		std::filesystem::copy(depSrc, utils::fs::extendPath<1>(includesSrc, { depName.c_str() }));
-		std::filesystem::copy(depLib, utils::fs::extendPath<1>(includesLib, { depName.c_str() }));
+		std::filesystem::copy(
+			depSrc,
+			utils::fs::extendPath<1>(includesSrc, { depName.c_str() }),
+			std::filesystem::copy_options::recursive
+		);
+		std::filesystem::copy(
+			depLib,
+			utils::fs::extendPath<1>(includesLib, { depName.c_str() }),
+			std::filesystem::copy_options::recursive
+		);
 
 		// un-materialize dependency
 		Package::unmaterializeDependencies(dep);
@@ -948,24 +956,88 @@ void Package::push(const Package &pkg)
 		return;
 	}
 
+	const auto pkgDir = Package::getPath(pkg);
+
+	// materialize dependencies so the package is portable
 	Package::materializeDependencies(pkg);
 
 	// get value of CPPM_ENABLE_GIT
 	// user may have set it to "1", we want to restore it to what it was later
-	const char* userEnableGitValue = strlen(getenv("CPPM_ENABLE_GIT")) == 0 ? "0" : getenv("CPPM_ENABLE_GIT");
+	const char* userEnableGitValue = getenv("CPPM_ENABLE_GIT") == nullptr ? "0" : getenv("CPPM_ENABLE_GIT");
 
 	// enable 'git push'
 	setenv("CPPM_ENABLE_GIT", "1", 1);
 
+	// track includes
+	Package::gitSetTrackIncludes(pkg, true, Empty());
+
+	// stage ./includes
+	utils::system::runCommand("cd " + pkgDir.string() + " && git add -f includes/");
+
+	std::cout << "Checking dependencies for changes" << std::endl;
+
+	// check if there are changes in staged ./includes
+	bool dependenciesChanged = utils::system::runCommand("cd " + pkgDir.string() + " && git diff --staged --exit-code --quiet includes/") != 0;
+
+	if (dependenciesChanged) {
+		// dependencies changed, commit
+		std::cout << "Dependencies changed and will be committed" << std::endl;
+		utils::system::runCommand("cd " + pkgDir.string() + " && git commit -m \"Dependency changes\"");
+
+		// push to remote
+		utils::system::runCommand("cd " + pkgDir.string() + " && CPPM_ENABLE_GIT=1 git push origin main");
+		
+		// untrack includes
+		Package::gitSetTrackIncludes(pkg, false, Empty());
+
+		// unmaterialize
+		Package::unmaterializeDependencies(pkg);
+
+	} else {
+		// no dependecy changes, unstage
+		std::cout << "Dependencies unchanged" << std::endl;
+		utils::system::runCommand("cd " + pkgDir.string() + " && git reset includes/");
+	}
+
 	// push to remote
-	const auto pkgDir = Package::getPath(pkg);
-	const std::string command = "cd" + pkgDir.string() + " && git push";
+	const std::string command = "cd " + pkgDir.string() + " && CPPM_ENABLE_GIT=1 git push origin main";
 	utils::system::runCommand(command);
 
 	// restore initial value of CPPM_ENABLE_GIT
 	setenv("CPPM_ENABLE_GIT", userEnableGitValue, 1);
+}
 
-	Package::unmaterializeDependencies(pkg);
+void Package::gitSetTrackIncludes(const Package& pkg, bool track, Maybe<std::filesystem::path> pathCurrent)
+{
+	if (!pkg.managed) {return;}
+
+	const auto pkgDir = Package::getPath(pkg);
+	std::filesystem::path path = "";
+	std::filesystem::path pathRelative = "";
+	if (std::holds_alternative<std::filesystem::path>(pathCurrent)) {
+		// resume from given path
+		path = std::get<std::filesystem::path>(pathCurrent);
+	} else {
+		// start from includes
+		path = Package::getPath<1>(pkg, { "includes" });
+	}
+	
+	pathRelative = std::filesystem::path(path.string().substr(pkgDir.string().length() + 1));
+
+	const auto pIter = std::filesystem::directory_iterator(path);
+	for (auto f: pIter) {
+		if (f.is_directory()) {
+			// resume recursively
+			Package::gitSetTrackIncludes(pkg, track, f.path());
+		} else {
+			// file, run git update-index --assume-unchanged path
+			utils::system::runCommand(
+				"cd " + pkgDir.string() +
+				" && git update-index --" + (track ? "no-" : "") + "assume-unchanged " + f.path().string() +
+				" 2>/dev/null"
+			);
+		}
+	}
 }
 
 bool Package::checkAll()
