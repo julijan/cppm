@@ -132,6 +132,21 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 		}
 	},
 	{
+		.command = "vcpkg-register",
+		.alias = "",
+		.description = "Register a package from vcpkg repository, registerering all it's dependencies in the process.",
+		.descriptionShort = "Register a package from vcpkg repository",
+		.arguments = {
+			{
+				.name = "packageName",
+				.description = "Package name to register. It must already be installed using vcpkg.",
+				.required = true,
+				.list = true,
+				.literal = false
+			}
+		}
+	},
+	{
 		.command = "move",
 		.alias = "mv",
 		.description = "Safely move package files to a new destination in the filesystem. Safely means that package dependents will not be broken after the move, as opposed to moving the package in other way.",

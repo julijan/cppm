@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <fstream>
 #include <cstring>
+#include <cstdio>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -234,7 +235,7 @@ void Package::move(Package &pkg, const std::filesystem::path toBare)
 	}
 }
 
-void Package::registerPackage(const std::filesystem::path &p, bool managed)
+void Package::registerPackage(const std::filesystem::path &p, bool managed, const char* assumeName)
 {
 	// make sure a package in this path is not already registered
 	MaybePackage existing = Package::includesPath(p);
@@ -278,7 +279,7 @@ void Package::registerPackage(const std::filesystem::path &p, bool managed)
 	// no existing package in the path, ok to register
 	// assume package name = current directory name
 	// if package with such name exists, append it with attempt number
-	std::string assumedName = p.filename().string();
+	std::string assumedName = assumeName == nullptr ? p.filename().string() : assumeName;
 
 	if (Package::packageExists(assumedName.c_str())) {
 		int attempt = 1;
@@ -317,6 +318,12 @@ void Package::registerPackage(const std::filesystem::path &p, bool managed)
 		pType,
 		managed
 	);
+
+	if (!managed) {
+		// non managed package, we must discover all linkable objects
+		const auto linkable = Package::findLinkableObjects(p);
+		pkg.linkableObjects.insert(pkg.linkableObjects.end(), linkable.begin(), linkable.end());
+	}
 
 	// register the package
 	Package::addToRegistry(pkg);
@@ -386,6 +393,27 @@ void Package::unregisterPackage(const char *const name)
 	std::cout << "Package " << name << " unregistered" << std::endl;
 }
 
+std::vector<std::filesystem::path> Package::findLinkableObjects(const std::filesystem::path &p)
+{
+	std::vector<std::filesystem::path> linkable;
+	const auto pIter = std::filesystem::directory_iterator(p);
+	for (const auto f: pIter) {
+		if (f.is_directory()) {
+			// directory, resume recursively
+			auto linkableInDir = Package::findLinkableObjects(f);
+			linkable.insert(linkable.end(), linkableInDir.begin(), linkableInDir.end());
+		} else {
+			// file, check extension
+			if (f.path().string().ends_with(".a")) {
+				// found linkable object
+				linkable.push_back(f.path());
+			}
+		}
+	}
+
+	return linkable;
+}
+
 std::string Package::promptType(bool expectLibrary) {
 	// if expectLibrary (only for non-managed projects), list is limited to library types
 	std::initializer_list<const char*> options = expectLibrary ?
@@ -413,6 +441,19 @@ std::string Package::promptType(bool expectLibrary) {
 	}
 
 	return *(options.begin() + optionIndex);
+}
+
+Maybe<std::filesystem::path> Package::vcpkgPackagePath(std::string &pkgName)
+{
+	std::string vcpkgDir = utils::system::appDataDir() + std::filesystem::path::preferred_separator + ".vcpkg";
+	std::filesystem::path pkgPath = utils::fs::extendPath<1>(vcpkgDir, { "packages" });
+	const auto iter = std::filesystem::directory_iterator(pkgPath);
+	for (auto dir: iter) {
+		if (dir.is_directory() && dir.path().filename().string().starts_with(pkgName + "_")) {
+			return dir.path();
+		}
+	}
+	return Empty();
 }
 
 std::vector<Package> Package::packages() {
@@ -554,11 +595,21 @@ void Package::addDependency(Package &pkg, Package &dep)
 	pkg.dependencies.push_back(dep.name);
 	Package::updateRegistry(pkg);
 
-	// create symbolic links
-	Package::linkDependency(pkg, dep);
+	if (pkg.managed) {
+		// create symbolic links
+		Package::linkDependency(pkg, dep);
+	
+		// re-generate premake
+		Package::generatePremake(pkg);
+	}
 
-	// re-generate premake
-	Package::generatePremake(pkg);
+	if (pkg.managed && !dep.managed) {
+		// adding a non-managed dependency to a managed package
+		// all transient dependencies must be added too
+		for (std::string& transient: dep.dependencies) {
+			Package::addDependency(pkg, transient.c_str());
+		}
+	}
 }
 
 void Package::addDependency(Package &pkg, const char *const name)
@@ -796,6 +847,19 @@ std::vector<Package> Package::dependents(const char *const name)
 	});
 }
 
+std::string Package::linkableObject(const std::filesystem::path &p)
+{
+	std::string fileName = p.filename();
+
+	if (fileName.starts_with("lib")) {
+		// remove "lib" from the beginning
+		fileName = fileName.substr(3);
+	}
+
+	// remove extension ".a"
+	return fileName.substr(0, fileName.length() - 2);
+}
+
 bool Package::build(const Package &pkg)
 {
 	if (!Package::generateCmake(pkg)) {
@@ -1010,10 +1074,11 @@ void Package::generatePremake(const Package &pkg)
 				continue;
 			}
 			
-			if (dependencyPkg.linkableObjects.size() > 0) {
+			if (!dependencyPkg.managed || dependencyPkg.linkableObjects.size() > 0) {
 				// has linkable objects, include them
 				for (std::string link: dependencyPkg.linkableObjects) {
-					linked.push_back(link);
+					std::string linkName = Package::linkableObject(std::filesystem::path(link));
+					linked.push_back(linkName);
 				}
 			} else {
 				// no linkable objects, this could mean the registry is out of date or library was never built
@@ -1303,6 +1368,97 @@ void Package::listDependents(const Package &pkg)
 			std::cout << "|- " << dep.name << std::endl;
 		}
 	}
+}
+
+void Package::vcpkgRegister(const char* pkgName)
+{
+
+	std::string vcpkgDir = utils::system::appDataDir() + std::filesystem::path::preferred_separator + ".vcpkg";
+
+	if (!std::filesystem::exists(vcpkgDir)) {
+		std::cerr << "Is vcpkg installed? Did not find " << vcpkgDir << std::endl;
+		return;
+	}
+
+	// command to list dependencies
+	std::string command = "vcpkg depend-info ";
+	command += pkgName;
+	command += " 2>&1";
+
+	// read output of vcpkg depend-info into a string
+	FILE* pipe = popen(command.c_str(), "r");
+
+	if (!pipe) {
+		std::cerr << "Error running command vcpkg depend-info" << std::endl;
+		return;
+	}
+
+	char buffer[128];
+	std::string result = "";
+	while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+		result += buffer;
+	}
+	pclose(pipe);
+
+	// split at newline char
+	std::vector<std::string> lines = utils::string::split(result, "\n");
+
+	// split each line at ":"
+	std::vector<std::vector<std::string>> packagesWithDepstring;
+	
+	std::transform(
+		lines.begin(),
+		lines.end(),
+		std::back_inserter(packagesWithDepstring),
+		[](std::string& line) {
+			// std::cout << "L: " << line << std::endl;
+			return utils::string::split(line, ":");
+		}
+	);
+	
+	
+	for (auto pkg: packagesWithDepstring) {
+		if (pkg.size() > 1) {
+			std::string packageName = pkg[0];
+			std::string depsString = pkg[1];
+
+			auto pkgPath = Package::vcpkgPackagePath(packageName);
+
+			if (std::holds_alternative<Empty>(pkgPath)) {
+				std::cerr << "Could not find vcpkg package path for " << packageName << std::endl;
+				continue;
+			}
+
+			
+			Package::registerPackage(std::get<std::filesystem::path>(pkgPath), false, packageName.c_str());
+			MaybePackage pkg = Package::get(packageName.c_str());
+
+			if (std::holds_alternative<PackageNotFound>(pkg)) {
+				std::cerr << "Package " << packageName << " expected to be registered at this point" << std::endl;
+				continue;
+			}
+
+			// add dependencies
+			const auto depNames = utils::string::split(depsString, ", ");
+			
+			for (const std::string& depName: depNames) {
+				std::string depnameClean = utils::string::trim(depName);
+				if (depnameClean.length() == 0) {
+					continue;
+				}
+				MaybePackage depMaybe = Package::get(depnameClean.c_str());
+				if (std::holds_alternative<PackageNotFound>(depMaybe)) {
+					std::cerr << "Dependency of " << packageName << ", " << depnameClean << " expected to be registered at this point" << std::endl;
+					continue;
+				}
+
+				Package::addDependency(std::get<Package>(pkg), depnameClean.c_str());
+			}
+
+			// std::cout << pkg[0] << " -> " << pkg[1] << std::endl;
+		}
+	}
+
 }
 
 void Package::display(const Package& pkg)

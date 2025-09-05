@@ -151,7 +151,7 @@ int main(int argc, const char* argv[]) {
 	if (strcmp(command, "register") == 0) {
 		bool asManaged = argc > 2 ? strcmp(argv[2], "managed") == 0 : false;
 		// register current path as a package
-		Package::registerPackage(path, asManaged);
+		Package::registerPackage(path, asManaged, nullptr);
 		return 0;
 	}
 
@@ -174,6 +174,20 @@ int main(int argc, const char* argv[]) {
 			Package::unregisterPackage(argv[i]);
 		}
 
+		return 0;
+	}
+
+	if (strcmp(command, "vcpkg-register") == 0) {
+		// register given package and all it's dependencies from vcpkg
+		if (argc == 2) {
+			std::cerr << "Package name not provided" << std::endl;
+			return 0;
+		}
+
+		for (int i = 2; i < argc; i++) {
+			std::cout << "Registering " << argv[i] << " and it's dependencies" << std::endl;
+			Package::vcpkgRegister(argv[i]);
+		}
 		return 0;
 	}
 

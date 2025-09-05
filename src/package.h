@@ -61,10 +61,13 @@ public:
 	static void move(Package& pkg, const std::filesystem::path to);
 
 	// registers given path as a non-managed package
-	static void registerPackage(const std::filesystem::path& p, bool managed);
+	static void registerPackage(const std::filesystem::path& p, bool managed, const char* assumeName);
 
 	// unregisters given package
 	static void unregisterPackage(const char* const name);
+
+	// find all linkable objects (.a) in path
+	static std::vector<std::filesystem::path> findLinkableObjects(const std::filesystem::path& p);
 
 	// return all registered packages
 	static std::vector<Package> packages();
@@ -184,6 +187,10 @@ public:
 	// (re)generate cmake
 	static bool generateCmake(const Package& pkg);
 
+	// given a path to a linkable object, returns it's name
+	// for example /path/to/libsomething.a -> something
+	static std::string linkableObject(const std::filesystem::path& p);
+
 	// build given package
 	static bool build(const Package& pkg);
 
@@ -223,6 +230,9 @@ public:
 	// list dependents of given Package
 	static void listDependents(const Package& pkg);
 
+	// register given package and it's dependencies from vcpkg
+	static void vcpkgRegister(const char* pkgName);
+
 	// display package details given Package instance
 	static void display(const Package& pkg);
 
@@ -240,4 +250,6 @@ public:
 private:
 	// prompt user to select a package type
 	static std::string promptType(bool expectLibrary);
+
+	static Maybe<std::filesystem::path> vcpkgPackagePath(std::string& pkgName);
 };
