@@ -763,7 +763,7 @@ bool Package::isDependency(const char *const pkgName, const char *const depName)
 void Package::materializeDependencies(const Package &pkg)
 {
 
-	if (pkg.dependencies.size() == 0) {
+	if (!pkg.managed || pkg.dependencies.size() == 0) {
 		// nothing to do
 		return;
 	}
@@ -805,7 +805,7 @@ void Package::materializeDependencies(const Package &pkg)
 
 void Package::unmaterializeDependencies(const Package &pkg)
 {
-	if (pkg.dependencies.size() == 0) {
+	if (!pkg.managed || pkg.dependencies.size() == 0) {
 		// nothing to do
 		return;
 	}
