@@ -35,7 +35,7 @@ namespace utils {
 			return replaceAll(s, needle, replaceWith);
 		}
 
-		std::string trim(std::string& str) {
+		std::string trim(const std::string& str) {
 			std::string out = "";
 
 			int start = 0;

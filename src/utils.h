@@ -24,7 +24,7 @@ namespace utils {
 
 		// remove space, newline and tab chars from beginning and end of given string
 		// returns a new string
-		std::string trim(std::string& str);
+		std::string trim(const std::string& str);
 
 		// used to disaply large blocks of text in a nicer format
 		// toWidth will insert a line break every charWidth chars, unless strict = false
