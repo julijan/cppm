@@ -135,6 +135,12 @@ void Package::create(const char *const name)
 		fs.close();
 	}
 
+	// create .gitignore
+	std::filesystem::path gitignorePath = Package::getPath<1>(pkg, { ".gitignore" });
+	std::ofstream fsGitIgnore(gitignorePath);
+	fsGitIgnore << "includes" << std::endl;
+	fsGitIgnore.close();
+
 	// create premake5.lua
 	Package::generatePremake(pkg);
 }
