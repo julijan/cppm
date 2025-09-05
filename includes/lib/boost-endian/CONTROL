@@ -1,0 +1,7 @@
+Package: boost-endian
+Version: 1.88.0
+Depends: boost-cmake, boost-config, boost-headers
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 4ed083639072f59cc54dced3f4c12844488eeea8485bcaf7a2b8f13dbd8b0110
+Description: Boost endian module

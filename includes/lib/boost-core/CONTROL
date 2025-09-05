@@ -1,0 +1,7 @@
+Package: boost-core
+Version: 1.88.0
+Depends: boost-assert, boost-cmake, boost-config, boost-headers, boost-static-assert, boost-throw-exception
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 3d6961812574352d98fed30ac38904d8110450a4d55d41358a689a393b499778
+Description: Boost core module

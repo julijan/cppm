@@ -1,0 +1,7 @@
+Package: boost-describe
+Version: 1.88.0
+Depends: boost-cmake, boost-config, boost-headers, boost-mp11
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 454e0c38879475fb15777c066c467ae729cd4272842eb9e81e7b2491456471d8
+Description: Boost describe module

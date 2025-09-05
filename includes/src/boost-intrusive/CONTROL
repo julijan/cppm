@@ -1,0 +1,7 @@
+Package: boost-intrusive
+Version: 1.88.0
+Depends: boost-assert, boost-cmake, boost-config, boost-headers, boost-move
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 706554eb110223970e0369533366d6b210842b3f32a4192b647d1ee189af189b
+Description: Boost intrusive module

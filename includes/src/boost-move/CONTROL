@@ -1,0 +1,7 @@
+Package: boost-move
+Version: 1.88.0
+Depends: boost-cmake, boost-config, boost-headers
+Architecture: x64-linux
+Multi-Arch: same
+Abi: e2efd74c001d644ff8d2a17d25f41f037cee8ed5904273ded762f49d0ee0a1c2
+Description: Boost move module
