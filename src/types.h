@@ -28,3 +28,8 @@ struct PackageData {
 
 template <typename T, unsigned int S>
 using SmartArray = std::array<T, S>;
+
+using Empty = const char*;
+
+template <typename T>
+using Maybe = std::variant<T, Empty>;
