@@ -141,6 +141,36 @@ void Package::create(const char *const name)
 	fsGitIgnore << "includes" << std::endl;
 	fsGitIgnore.close();
 
+	// create README.md
+	std::filesystem::path readmePath = Package::getPath<1>(pkg, { "README.md" });
+	std::ofstream fsReadme(readmePath);
+	fsReadme << R"(Don't write config files, write C++!
+
+Before you start programming, a brief description of the file structure created:
+The following is created:
++-src (all your code goes here)
+|--projectName.cpp (entry point for your application with a simple "Hello World" application)
++-includes (all dependencies you include will be placed here, never create files here!)
+|-premake5.lua (this file is used to describe your project to the compiler)
+|-.gitignore (includes directories ignored, this does not mean they will not be pushed to remote, to learn about this run cppm help push)
+|-README.md (this file, feel free to edit or delete it)
+
+This means that you will only ever need to edit files within ./src directory. You can create directories within src if you need to structure your code in that way.
+
+To create new source files run `cppm add [srcName]`
+To include another package run `cppm include [packageName]`
+To compile your project run `cppm build`
+
+Package? In cppm dialect, a package is what is more commonly referred to as project, it can be an application or a library. Package can be a managed package (your project, just like this one) or non-managed (3rd party code). You can register non-managed packages using `cppm register`, run `cppm help register` to learn how to use the command.
+
+You can easily register packages you installed using vcpkg by running `cppm vcpkg-register [packageName]`, then you can include them in your package using `cppm include [packageName]`
+
+Lastly, a git repository has been initialized for you, if you don't use git, delete .git directory.
+
+run `cppm help` to learn about all the features at your disposal.
+	)" << std::endl;
+	fsReadme.close();
+
 	// create premake5.lua
 	Package::generatePremake(pkg);
 }
