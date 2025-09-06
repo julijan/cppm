@@ -1043,8 +1043,15 @@ bool Package::build(const Package &pkg)
 
 bool Package::check(const Package &pkg, bool strict)
 {
-
-	std::cout << "Checking " << (pkg.managed ? "managed" : "non-managed") << " package " << pkg.name << std::endl;
+	auto stream = PrintNice::stream();
+	const char* pkgType = pkg.managed ? "managed" : "non-managed";
+	stream << fmt::format("Checking {} package", pkgType).c_str() <<
+	TextStyledToken{
+		pkg.name.c_str(),
+		OutputType::Info,
+		0
+	} <<
+	StreamOut();
 
 	auto path = Package::getPath(pkg);
 	return Package::checkPath(path, pkg.managed, strict);
@@ -1055,12 +1062,13 @@ bool Package::checkPath(const std::filesystem::path& path, bool asManaged, bool 
 	bool existsOnFilesystem = std::filesystem::exists(path);
 	
 	if (!existsOnFilesystem) {
-		std::cerr << "Not found in " << path << std::endl;
+		PrintNice::error(fmt::format("Not found in {}", path.c_str()), ErrorSeverity::Medium);
 		return false;
 	}
 	
 	if (!asManaged) {
 		// non managed packages only need to exist in the file system
+		PrintNice::print("✓ Package valid", OutputType::Success);
 		return true;
 	}
 	
@@ -1069,28 +1077,28 @@ bool Package::checkPath(const std::filesystem::path& path, bool asManaged, bool 
 	// check for /src
 	auto srcPath = utils::fs::extendPath<1>(path, { "src" });
 	if (!std::filesystem::exists(srcPath)) {
-		std::cerr << "Package is missing it's /src directory" << std::endl;
+		PrintNice::error("Package is missing it's /src directory", ErrorSeverity::Medium);
 		return false;
 	}
 	
 	// check for /includes
 	auto includesPath = utils::fs::extendPath<1>(path, { "includes" });
 	if (!std::filesystem::exists(includesPath)) {
-		std::cerr << "Package is missing it's /includes directory" << std::endl;
+		PrintNice::error("Package is missing it's /includes directory", ErrorSeverity::Medium);
 		return false;
 	}
 	
 	// check for /includes/src
 	auto includesSrcPath = utils::fs::extendPath<2>(path, { "includes", "src" });
 	if (!std::filesystem::exists(includesSrcPath)) {
-		std::cerr << "Package is missing it's /includes/src directory" << std::endl;
+		PrintNice::error("Package is missing it's /includes/src directory", ErrorSeverity::Low);
 		return false;
 	}
 	
 	// check for /includes/lib
 	auto includesLibPath = utils::fs::extendPath<2>(path, { "includes", "lib" });
 	if (!std::filesystem::exists(includesLibPath)) {
-		std::cerr << "Package is missing it's /includes/lib directory" << std::endl;
+		PrintNice::error("Package is missing it's /includes/lib directory", ErrorSeverity::Low);
 		return false;
 	}
 	
@@ -1099,12 +1107,12 @@ bool Package::checkPath(const std::filesystem::path& path, bool asManaged, bool 
 		// in strict mode, must contain premake5.lua
 		auto luaPath = utils::fs::extendPath<1>(path, { "premake5.lua" });
 		if (!std::filesystem::exists(luaPath)) {
-			std::cerr << "Package is missing premake5.lua" << std::endl;
+			PrintNice::print("Package is missing premake5.lua", OutputType::Warning);
 			return false;
 		}
 	}
 	
-	std::cout << "Package valid" << std::endl;
+	PrintNice::print("✓ Package valid", OutputType::Success);
 	
 	return true;
 }
@@ -1204,15 +1212,44 @@ void Package::gitSetTrackIncludes(const Package& pkg, bool track, Maybe<std::fil
 
 bool Package::checkAll()
 {
+	int checked = 0;
+	int valid = 0;
 	bool foundInvalid = false;
 	std::vector<Package> packages = Package::packages();
 	for (const Package& pkg: packages) {
-		bool valid = Package::check(pkg, true);
-		if (!valid) {
+		bool isValid = Package::check(pkg, true);
+		checked++;
+		valid += isValid ? 1 : 0;
+		if (!isValid) {
 			foundInvalid = true;
 		}
-		std::cout << std::endl;
+		PrintNice::print();
 	}
+
+	auto stream = PrintNice::stream();
+	std::string msg = fmt::format("Checked {} packages,", checked);
+	std::string msgValid = fmt::format("{} valid", valid);
+	std::string msgInvalid = fmt::format("{} invalid", checked - valid);
+
+	stream << msg.c_str();
+
+	if (valid > 0) {
+		stream << TextStyledToken{
+			msgValid.c_str(),
+			OutputType::Success,
+			0
+		};
+	}
+
+	if (valid < checked) {
+		stream << TextStyledToken{
+			msgInvalid.c_str(),
+			OutputType::Error,
+			0
+		};
+	}
+
+	stream << StreamOut();
 
 	return !foundInvalid;
 }

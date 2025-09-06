@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <filesystem>
 
+#include "format.h"
+
+#include "PrintNice.h"
 #include "package.h"
 #include "core.h"
 #include "help.h"
@@ -282,33 +285,37 @@ int main(int argc, const char* argv[]) {
 		if (argc == 2) {
 			// no arguments: check current package
 			if (!isPackage) {
-				std::cerr << "To use check without arguments you must be within a package directory." << std::endl;
-				return 0;
+				PrintNice::print(
+					"To use check without arguments you must be within a package directory.",
+					OutputType::Warning
+				);
+				return 1;
 			}
 
 			const Package& pkg = std::get<Package>(package);
-			Package::check(pkg, true);
-
-			return 0;
+			return Package::check(pkg, true) ? 0 : 1;
 		}
 
 		if (argc == 3 && strcmp(argv[2], "--all") == 0) {
 			// --all: check all packages
-			Package::checkAll();
-			return 0;
+			return Package::checkAll() ? 0 : 1;
 		}
 
 		// package list: check listed packages
 		for (int i = 2; i < argc; i++) {
 			MaybePackage pkgMaybe = Package::get(argv[i]);
 			if (std::holds_alternative<PackageNotFound>(pkgMaybe)) {
-				std::cerr << "Package " << argv[i] << " not registered, skipping" << std::endl;
+				PrintNice::print(
+					fmt::format("Package {} not registered, skipping\n", argv[i]),
+					OutputType::Warning
+				);
 				continue;
 			}
 			const Package& pkg = std::get<Package>(pkgMaybe);
 			Package::check(pkg, true);
-			return 0;
+			PrintNice::print();
 		}
+		return 0;
 	}
 
 	if (strcmp(command, "mv") == 0 || strcmp(command, "move") == 0) {
