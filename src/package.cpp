@@ -9,9 +9,11 @@
 #include <algorithm>
 #include <cstdlib>
 
+#include "fmt/format.h"
+#include "boost/json.hpp"
+
 #include "package.h"
 #include "utils.h"
-#include "boost/json.hpp"
 #include "core.h"
 #include "PrintNice.h"
 
@@ -50,7 +52,10 @@ void Package::create(const char *const name)
 {
 
 	if (Package::packageExists(name)) {
-		std::cerr << "Package with name " << name << " already exists" << std::endl;
+		PrintNice::print(
+			fmt::format("Package with name {} already exists", name),
+			OutputType::Warning
+		);
 		return;
 	}
 
@@ -62,7 +67,10 @@ void Package::create(const char *const name)
 
 	// check if exists
 	if (exists(projectDir)) {
-		std::cerr << "Path " << projectDir.c_str() << " exists" << std::endl;
+		PrintNice::print(
+			fmt::format("Path {} exists", projectDir.string()),
+			OutputType::Warning
+		);
 		return;
 	}
 
@@ -70,7 +78,8 @@ void Package::create(const char *const name)
 	try {
 		std::filesystem::create_directory(projectDir);
 	} catch(std::filesystem::filesystem_error e) {
-		std::cerr << "Error creating project directory: " << e.what() << std::endl;
+		PrintNice::error(fmt::format("Error creating project directory: {}", e.what()), ErrorSeverity::Medium);
+		return;
 	}
 
 	// create sub-directories
@@ -91,7 +100,7 @@ void Package::create(const char *const name)
 	// init a git repository
 	std::string gitInitCommand = utils::string::replaceAll("git init -q %s", "%s", projectDir.c_str());
 	if (utils::system::runCommand(gitInitCommand) == 0) {
-		std::cout << "Initialized git repository" << std::endl;
+		PrintNice::print("Initialized git repository", OutputType::Info);
 	}
 
 	// create git pre-push hook
@@ -175,6 +184,8 @@ run `cppm help` to learn about all the features at your disposal.
 
 	// create premake5.lua
 	Package::generatePremake(pkg);
+
+	PrintNice::print(fmt::format("Package created in directory {}", name), OutputType::Success);
 }
 
 // create includes/lib and includes/src
