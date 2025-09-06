@@ -3,6 +3,8 @@
 #include <string>
 #include <variant>
 #include <functional>
+#include <set>
+
 #include "boost/json.hpp"
 
 #include "types.h"
@@ -178,6 +180,9 @@ public:
 
 	// returns packages that depend on given package
 	static std::vector<Package> dependents(const char* const name);
+
+	// returns all linkable objects, including those of transient dependencies
+	static std::set<std::string> listLinkable(const Package& pkg);
 
 	// true if StaticLib or SharedLib
 	static bool isLibrary(const Package& pkg);

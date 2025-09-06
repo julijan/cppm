@@ -4,6 +4,7 @@
 #include <cstring>
 #include <cstdio>
 #include <vector>
+#include <set>
 #include <string>
 #include <algorithm>
 #include <cstdlib>
@@ -976,6 +977,34 @@ std::vector<Package> Package::dependents(const char *const name)
 	});
 }
 
+std::set<std::string> Package::listLinkable(const Package &pkg)
+{
+	std::set<std::string> linkable;
+
+	std::vector<Package> dependencies = Package::getDependencies(pkg);
+
+	for (Package& dep: dependencies) {
+
+		if (dep.managed && Package::isLibrary(dep)) {
+			// managed library, include it's name
+			linkable.insert(dep.name);
+		}
+
+		for (std::string& obj: dep.linkableObjects) {
+			// direct dependency obj
+			// obj contains a full path to obj, extract name using Package::linkableObject
+			std::string objName = Package::linkableObject(std::filesystem::path(obj));
+			linkable.insert(objName);
+		}
+		
+		// transient recursive
+		std::set<std::string> objTransient = Package::listLinkable(dep);
+		linkable.insert(objTransient.begin(), objTransient.end());
+	}
+
+	return linkable;
+}
+
 std::string Package::linkableObject(const std::filesystem::path &p)
 {
 	std::string fileName = p.filename();
@@ -1246,48 +1275,15 @@ void Package::generatePremake(const Package &pkg)
 
 	if (pkg.dependencies.size() > 0) {
 		// link libraries
-
-		// collect all linked objects in a vector
-		std::vector<std::string> linked;
-
-		for (const std::string& depName: pkg.dependencies) {
-			MaybePackage dependency = Package::get(depName.c_str());
-			if (std::holds_alternative<PackageNotFound>(dependency)) {
-				// missing dependency!
-				std::cerr << "Missing dependency " << depName << ", resuming" << std::endl;
-				continue;
-			}
-
-			Package dependencyPkg = std::get<Package>(dependency);
-
-			if (!Package::isLibrary(dependencyPkg)) {
-				// not a library
-				// what is it then? Probably should not be a dependency in the first place
-				// skip
-				continue;
-			}
-			
-			if (!dependencyPkg.managed || dependencyPkg.linkableObjects.size() > 0) {
-				// has linkable objects, include them
-				for (std::string link: dependencyPkg.linkableObjects) {
-					std::string linkName = Package::linkableObject(std::filesystem::path(link));
-					linked.push_back(linkName);
-				}
-			} else {
-				// no linkable objects, this could mean the registry is out of date or library was never built
-				// assume package name
-				linked.push_back(dependencyPkg.name);
-			}
-		}
+		std::set<std::string> linked = Package::listLinkable(pkg);
 
 		if (linked.size() > 0) {
 			// include links in premake
 			fstream << "\tlinks {" << std::endl;
 
-			for (int i = 0; i < linked.size(); i++) {
-				std::string& link = linked[i];
-				bool last = i == linked.size() - 1;
-				fstream << "\t\t\"" << link  << '"' << (last ? "" : ",") << std::endl;
+			const auto last = --linked.end();
+			for (auto i = linked.begin(); i != linked.end(); ++i) {
+				fstream << "\t\t\"" << *i << '"' << (i == last ? "" : ",") << std::endl;
 			}
 
 			fstream << "\t}\n" << std::endl;
