@@ -1362,19 +1362,8 @@ void Package::generateVSC(Package &pkg)
 	boost::json::array includePaths;
 
 	// allow includes from current project
-	includePaths.push_back("${workspaceFolder}/**");
-
-	// allow includes from dependency directories
-	for (std::string& depName: pkg.dependencies) {
-		MaybePackage depMaybe = Package::get(depName.c_str());
-		if (std::holds_alternative<PackageNotFound>(depMaybe)) {
-			std::cerr << "Missing dependency " << depName << " skipped" << std::endl;
-			continue;
-		}
-
-		std::string depIncludePath = std::get<Package>(depMaybe).path + "/**";
-		includePaths.push_back(depIncludePath.c_str());
-	}
+	includePaths.push_back("${workspaceFolder}/src/**/*");
+	includePaths.push_back("${workspaceFolder}/includes/src/**/*");
 
 	configuration["name"] = pkg.name;
 	configuration["includePath"] = includePaths;
