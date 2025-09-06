@@ -617,6 +617,17 @@ std::vector<Package> Package::getDependencies(const Package &pkg)
 		}
 	);
 
+	// sort, managed first
+	std::sort(
+		dependencies.begin(),
+		dependencies.end(),
+		[](auto a, auto b) {
+			int aVal = a.managed ? 1 : 0;
+			int bVal = b.managed ? 1 : 0;
+			return aVal > bVal;
+		}
+	);
+
 	return dependencies;
 }
 
@@ -1454,12 +1465,13 @@ std::string Package::typeToString(PackageType t) {
 
 void Package::listDependencies(const Package &pkg)
 {
-	if (pkg.dependencies.size() == 0) {
+	const auto dependencies = Package::getDependencies(pkg);
+	if (dependencies.size() == 0) {
 		std::cout << "No dependencies" << std::endl;
 	} else {
 		std::cout << "+ Dependencies:" << std::endl;
-		for (const std::string& depName: pkg.dependencies) {
-			std::cout << "|- " << depName << std::endl;
+		for (const Package& dep: dependencies) {
+			std::cout << "|- " << dep.name << std::endl;
 		}
 	}
 }
@@ -1573,7 +1585,10 @@ void Package::display(const Package& pkg)
 {
 	std::cout << "Package name: " << pkg.name << std::endl;
 	std::cout << "Version: " << pkg.version << std::endl;
-	std::cout << "Type: " << Package::typeToString(pkg.type) << std::endl;
+	std::cout <<
+		"Type: " <<
+		(pkg.managed ? "managed" : "non-managed") << " " << Package::typeToString(pkg.type) <<
+		std::endl;
 	std::cout << "Path: " << pkg.path << std::endl;
 
 	Package::listDependencies(pkg);
