@@ -731,6 +731,19 @@ void Package::linkDependency(const Package &pkg, const Package &dep)
 	std::filesystem::path libsSymlinkTarget = Package::dependencyTargetLib(dep);
 
 	std::filesystem::create_directory_symlink(libsSymlinkTarget, libsSymlinkPath);
+
+	// link transient dependencies recursively
+	if (dep.dependencies.size() > 0) {
+		for (const std::string& depName: dep.dependencies) {
+			MaybePackage dep = Package::get(depName.c_str());
+			if (std::holds_alternative<PackageNotFound>(dep)) {
+				std::cerr << "Skipped linking a missing dependency " << depName << std::endl;
+				continue;
+			}
+
+			Package::linkDependency(pkg, std::get<Package>(dep));
+		}
+	}
 }
 
 void Package::linkDependencies(const Package &pkg)
@@ -749,6 +762,15 @@ void Package::unlinkDependency(const Package &pkg, const Package &dep)
 
 void Package::unlinkDependency(const Package &pkg, const char *depName)
 {
+	MaybePackage depMaybe = Package::get(depName);
+
+	if (std::holds_alternative<PackageNotFound>(depMaybe)) {
+		std::cerr << "Attempted to unlink a non-existent dependency" << std::endl;
+		return;
+	}
+
+	Package dep = std::get<Package>(depMaybe);
+
 	const auto srcLink = Package::getPath<3>(pkg, { "includes", "src", depName });
 	const auto libLink = Package::getPath<3>(pkg, { "includes", "lib", depName });
 	if (std::filesystem::exists(srcLink)) {
@@ -756,6 +778,21 @@ void Package::unlinkDependency(const Package &pkg, const char *depName)
 	}
 	if (std::filesystem::exists(libLink)) {
 		std::filesystem::remove(libLink);
+	}
+
+	// unlink transient dependencies recursively
+	if (dep.dependencies.size() > 0) {
+		for (const std::string& depName: dep.dependencies) {
+			MaybePackage dep = Package::get(depName.c_str());
+			if (std::holds_alternative<PackageNotFound>(dep)) {
+				std::cerr << "Skipped unlinking a missing dependency " << depName << std::endl;
+				continue;
+			}
+
+			if (!Package::isTransientDependency(pkg, std::get<Package>(dep))) {
+				Package::unlinkDependency(pkg, std::get<Package>(dep));
+			}
+		}
 	}
 }
 
@@ -783,7 +820,7 @@ std::filesystem::path Package::dependencyTargetLib(const Package &dep)
 	return pkgPath;
 }
 
-bool Package::isDependency(Package &pkg, const char *const depName)
+bool Package::isDependency(const Package &pkg, const char *const depName)
 {
 	auto it = std::find_if(pkg.dependencies.begin(), pkg.dependencies.end(), [depName](std::string existingDep) {
 		return existingDep == depName;
@@ -792,7 +829,7 @@ bool Package::isDependency(Package &pkg, const char *const depName)
 	return it != pkg.dependencies.end();
 }
 
-bool Package::isDependency(Package &pkg, Package &dep)
+bool Package::isDependency(const Package &pkg, const Package &dep)
 {
 	return Package::isDependency(pkg, dep.name.c_str());
 }
@@ -805,6 +842,30 @@ bool Package::isDependency(const char *const pkgName, const char *const depName)
 	}
 
 	return Package::isDependency(std::get<Package>(pkg), depName);
+}
+
+bool Package::isTransientDependency(const Package& pkg, const Package& dep)
+{
+	bool direct = Package::isDependency(pkg, dep);
+
+	if (direct) {return true;}
+
+	// check if transient of some
+	const auto it = std::find_if(
+		pkg.dependencies.begin(),
+		pkg.dependencies.end(),
+		[&dep](const std::string& depName) {
+			MaybePackage pkgDep = Package::get(depName.c_str());
+			if (std::holds_alternative<PackageNotFound>(pkgDep)) {
+				std::cerr << "Package missing in chain " << depName << std::endl;
+				return false;
+			}
+
+			return Package::isTransientDependency(std::get<Package>(pkgDep), dep);
+		}
+	);
+
+	return it != pkg.dependencies.end();
 }
 
 void Package::materializeDependencies(const Package &pkg)

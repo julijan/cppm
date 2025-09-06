@@ -154,13 +154,16 @@ public:
 	static std::filesystem::path dependencyTargetLib(const Package& dep);
 
 	// check if depName is a dependency of pkg
-	static bool isDependency(Package&pkg, const char* const depName);
+	static bool isDependency(const Package&pkg, const char* const depName);
 
 	// check if dep is a dependency of pkg
-	static bool isDependency(Package&pkg, Package& dep);
+	static bool isDependency(const Package&pkg, const Package& dep);
 
 	// check if depName is a dependency of pkgName
 	static bool isDependency(const char* const pkgName, const char* const depName);
+
+	// returns true if dep is a dependency or a transient dependency
+	static bool isTransientDependency(const Package& pkg, const Package& dep);
 
 	// materialize dependencies
 	// copy contents of all dependencies into includes directory instead of symlinks
