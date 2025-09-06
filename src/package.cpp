@@ -13,6 +13,7 @@
 #include "utils.h"
 #include "boost/json.hpp"
 #include "core.h"
+#include "PrintNice.h"
 
 Package::Package(std::string name, std::string path, PackageType type, bool managed)
 {
@@ -1526,11 +1527,28 @@ void Package::listDependencies(const Package &pkg)
 {
 	const auto dependencies = Package::getDependencies(pkg);
 	if (dependencies.size() == 0) {
-		std::cout << "No dependencies" << std::endl;
+		PrintNice::print("No dependencies", OutputType::Normal, TextStyle::Italic);
 	} else {
-		std::cout << "+ Dependencies:" << std::endl;
+		PrintNice::print("📁 Dependencies:");
 		for (const Package& dep: dependencies) {
-			std::cout << "|- " << dep.name << std::endl;
+			auto stream = PrintNice::stream();
+			stream <<
+				"|-" <<
+				(
+					dep.managed ?
+						TextStyledToken{
+							"●",
+							OutputType::Success,
+							0
+						} :
+						TextStyledToken{
+							"○",
+							OutputType::Normal,
+							0
+						}
+				) <<
+				dep.name.c_str() <<
+				StreamOut();
 		}
 	}
 }
@@ -1540,11 +1558,28 @@ void Package::listDependents(const Package &pkg)
 	const std::vector<Package> dependents = Package::dependents(pkg.name.c_str());
 
 	if (dependents.size() == 0) {
-		std::cout << "No dependents" << std::endl;
+		PrintNice::print("No dependents", OutputType::Normal, TextStyle::Italic);
 	} else {
-		std::cout << "+ Dependents:" << std::endl;
+		PrintNice::print("📁 Dependents:");
 		for (const Package& dep: dependents) {
-			std::cout << "|- " << dep.name << std::endl;
+			auto stream = PrintNice::stream();
+			stream <<
+				"|-" <<
+				(
+					dep.managed ?
+						TextStyledToken{
+							"●",
+							OutputType::Success,
+							0
+						} :
+						TextStyledToken{
+							"○",
+							OutputType::Normal,
+							0
+						}
+				) <<
+				dep.name.c_str() <<
+				StreamOut();
 		}
 	}
 }
@@ -1634,7 +1669,6 @@ void Package::vcpkgRegister(const char* pkgName)
 				Package::addDependency(std::get<Package>(pkg), depnameClean.c_str());
 			}
 
-			// std::cout << pkg[0] << " -> " << pkg[1] << std::endl;
 		}
 	}
 
@@ -1642,18 +1676,75 @@ void Package::vcpkgRegister(const char* pkgName)
 
 void Package::display(const Package& pkg)
 {
-	std::cout << "Package name: " << pkg.name << std::endl;
-	std::cout << "Version: " << pkg.version << std::endl;
-	std::cout <<
-		"Type: " <<
-		(pkg.managed ? "managed" : "non-managed") << " " << Package::typeToString(pkg.type) <<
-		std::endl;
-	std::cout << "Path: " << pkg.path << std::endl;
+	PrintStream stream = PrintNice::stream();
 
+	stream.separator = "";
+
+	stream <<
+		// managed status indicator
+		(
+			pkg.managed ?
+				TextStyledToken{
+					"●",
+					OutputType::Success,
+					0
+				} :
+				TextStyledToken{
+					"○",
+					OutputType::Normal,
+					0
+				}
+		) << " " <<
+
+		"Package name: " <<
+
+		TextStyledToken{
+			pkg.name.c_str(),
+			OutputType::Info,
+			0
+		} << "\n" <<
+
+		"  Type: " <<
+
+		TextStyledToken{
+			(pkg.managed ? "managed" : "non-managed"),
+			OutputType::Info,
+			0
+		} << " " <<
+		
+		TextStyledToken{
+			Package::typeToString(pkg.type).c_str(),
+			OutputType::Info,
+			0
+		} << "\n" <<
+
+		"  Version: " <<
+		
+		TextStyledToken{
+			pkg.version.c_str(),
+			OutputType::Info,
+			0
+		} << "\n" <<
+
+		"  Path: " <<
+		
+		TextStyledToken{
+			pkg.path.c_str(),
+			OutputType::Info,
+			0
+		} <<
+
+		StreamOut();
+		
+	PrintNice::print();
+	
 	Package::listDependencies(pkg);
+
+	PrintNice::print();
+
 	Package::listDependents(pkg);
 
-	if ((pkg.type == PackageType::StaticLib || pkg.type == PackageType::SharedLib) && pkg.linkableObjects.size() > 0) {
+	if (Package::isLibrary(pkg) && pkg.linkableObjects.size() > 0) {
 		// show linkable objects
 		std::cout << "Linkable objects:" << std::endl;
 		for (const std::string& objName: pkg.linkableObjects) {
@@ -1667,7 +1758,7 @@ void Package::display(const char *const name)
 	MaybePackage pkg = Package::get(name);
 
 	if (std::holds_alternative<PackageNotFound>(pkg)) {
-		std::cout << "Package " << name << " does not exist";
+		PrintNice::print(std::string("Package ") + name + " does not exist", OutputType::Warning);
 		return;
 	}
 
