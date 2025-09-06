@@ -650,13 +650,16 @@ void Package::addDependency(Package &pkg, Package &dep)
 		Package::generatePremake(pkg);
 	}
 
-	if (pkg.managed && !dep.managed) {
-		// adding a non-managed dependency to a managed package
-		// all transient dependencies must be added too
-		for (std::string& transient: dep.dependencies) {
-			Package::addDependency(pkg, transient.c_str());
-		}
-	}
+	// no longer needed
+	// linkDependencies will link all transient dependencies in includes
+	// so they no longer need to be a direct dependency
+	// if (pkg.managed && !dep.managed) {
+	// 	// adding a non-managed dependency to a managed package
+	// 	// all transient dependencies must be added too
+	// 	for (std::string& transient: dep.dependencies) {
+	// 		Package::addDependency(pkg, transient.c_str());
+	// 	}
+	// }
 }
 
 void Package::addDependency(Package &pkg, const char *const name)
@@ -866,6 +869,16 @@ bool Package::isTransientDependency(const Package& pkg, const Package& dep)
 	);
 
 	return it != pkg.dependencies.end();
+}
+
+bool Package::isTransientDependency(const Package &pkg, const char *depName)
+{
+	MaybePackage depMaybe = Package::get(depName);
+	if (std::holds_alternative<PackageNotFound>(depMaybe)) {
+		std::cerr << "Missing dependency in the chanin " << depName << std::endl;
+		return false;
+	}
+	return Package::isTransientDependency(pkg, std::get<Package>(depMaybe));
 }
 
 void Package::materializeDependencies(const Package &pkg)

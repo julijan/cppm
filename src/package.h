@@ -164,6 +164,7 @@ public:
 
 	// returns true if dep is a dependency or a transient dependency
 	static bool isTransientDependency(const Package& pkg, const Package& dep);
+	static bool isTransientDependency(const Package& pkg, const char* depName);
 
 	// materialize dependencies
 	// copy contents of all dependencies into includes directory instead of symlinks
