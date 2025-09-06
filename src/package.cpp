@@ -524,7 +524,7 @@ bool Package::packageExists(const char *const name)
 	const auto packages = Package::packagesJSON();
 
 	for (auto package: packages) {
-		if (package.as_object().at("name") == name) {
+		if (strcmp(package.as_object().at("name").as_string().c_str(), name) == 0) {
 			return true;
 		}
 	}
