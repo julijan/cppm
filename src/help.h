@@ -169,6 +169,28 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 		}
 	},
 	{
+		.command = "test",
+		.alias = "",
+		.description = "Create/remove/run tests. Command can only be executed within managed package directory. When executed with no action argument, it will run all tests defined for the package. When action is 'add' followed by a list of test names, tests are created in ./tests/[testName.cpp] with basic boilerplate. Test passes if exit code is 0. To run a test you can use the 'run' action followed by list of tests to run, or without list in which case all tests will be executed. To remove a test use 'remove' action followed by test name to be removed.",
+		.descriptionShort = "Create/remove/run tests",
+		.arguments = {
+			{
+				.name = "action",
+				.description = "Can be one of: add, run, remove. If ommitted, all defined tests will be executed.",
+				.required = false,
+				.list = false,
+				.literal = false
+			},
+			{
+				.name = "testName",
+				.description = "Test name to perform specified action with. For add and run this can be a list, for remove it is a single test name.",
+				.required = false,
+				.list = true,
+				.literal = false
+			}
+		}
+	},
+	{
 		.command = "vsc",
 		.alias = "",
 		.description = "Generates configuration for Visual Studio Code for given package(s) making it aware of the used dependencies.",
