@@ -15,7 +15,6 @@
 #include "package.h"
 #include "utils.h"
 #include "core.h"
-#include "PrintNice.h"
 
 Package::Package(std::string name, std::string path, PackageType type, bool managed)
 {
@@ -507,6 +506,21 @@ Maybe<std::filesystem::path> Package::vcpkgPackagePath(std::string &pkgName)
 	return Empty();
 }
 
+TextStyledToken Package::managedIndicator(bool managed)
+{
+	return managed ?
+		TextStyledToken{
+			"●",
+			OutputType::Success,
+			0
+		} :
+		TextStyledToken{
+			"○",
+			OutputType::Normal,
+			0
+		};
+}
+
 std::vector<Package> Package::packages() {
 	boost::json::array packagesRaw = Package::packagesJSON();
 
@@ -585,6 +599,20 @@ MaybePackageJSON Package::getJSON(const char *const name)
 	}
 
 	return PackageNotFound();
+}
+
+void Package::list()
+{
+	std::vector<Package> packages = Package::packages();
+	std::sort(packages.begin(), packages.end(), [](auto a, auto b) {
+		int aVal = a.managed ? 1 : 0;
+		int bVal = b.managed ? 1 : 0;
+		return aVal > bVal;
+	});
+	PrintStream stream = PrintNice::stream();
+	for (auto package: packages) {
+		stream << Package::managedIndicator(package.managed) << package.name.c_str() << StreamOut();
+	}
 }
 
 std::vector<std::string> Package::dependencyNames(const char *const name)
@@ -1582,23 +1610,7 @@ void Package::listDependencies(const Package &pkg)
 		PrintNice::print("📁 Dependencies:");
 		for (const Package& dep: dependencies) {
 			auto stream = PrintNice::stream();
-			stream <<
-				"|-" <<
-				(
-					dep.managed ?
-						TextStyledToken{
-							"●",
-							OutputType::Success,
-							0
-						} :
-						TextStyledToken{
-							"○",
-							OutputType::Normal,
-							0
-						}
-				) <<
-				dep.name.c_str() <<
-				StreamOut();
+			stream << "|-" << Package::managedIndicator(dep.managed) << dep.name.c_str() << StreamOut();
 		}
 	}
 }
@@ -1614,22 +1626,7 @@ void Package::listDependents(const Package &pkg)
 		for (const Package& dep: dependents) {
 			auto stream = PrintNice::stream();
 			stream <<
-				"|-" <<
-				(
-					dep.managed ?
-						TextStyledToken{
-							"●",
-							OutputType::Success,
-							0
-						} :
-						TextStyledToken{
-							"○",
-							OutputType::Normal,
-							0
-						}
-				) <<
-				dep.name.c_str() <<
-				StreamOut();
+				"|-" << Package::managedIndicator(dep.managed) << dep.name.c_str() << StreamOut();
 		}
 	}
 }
@@ -1732,19 +1729,7 @@ void Package::display(const Package& pkg)
 
 	stream <<
 		// managed status indicator
-		(
-			pkg.managed ?
-				TextStyledToken{
-					"●",
-					OutputType::Success,
-					0
-				} :
-				TextStyledToken{
-					"○",
-					OutputType::Normal,
-					0
-				}
-		) << " " <<
+		Package::managedIndicator(pkg.managed)  << " " <<
 
 		"Package name: " <<
 

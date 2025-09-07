@@ -7,6 +7,8 @@
 
 #include "boost/json.hpp"
 
+#include "PrintNice.h"
+
 #include "types.h"
 
 class Package;
@@ -91,6 +93,9 @@ public:
 
 	// if given package exists, returns std::variant holding PackageJSON
 	static MaybePackageJSON getJSON(const char* const name);
+
+	// list all packages
+	static void list();
 
 	// write JSON to package registry
 	static void writeRegistry(const boost::json::value& json);
@@ -266,4 +271,7 @@ private:
 	static std::string promptType(bool expectLibrary);
 
 	static Maybe<std::filesystem::path> vcpkgPackagePath(std::string& pkgName);
+
+	// outputs TextStyledToken with a single unicode symbol that represents package managed status
+	static TextStyledToken managedIndicator(bool managed);
 };
