@@ -38,7 +38,7 @@ public:
 	);
 
 	// create a project (managed package)
-	static void create(const char* const name);
+	static bool create(const char* const name);
 
 	// creates /includes, /includes/src and /includes/lib
 	static void createIncludesDirectories(const Package& pkg);

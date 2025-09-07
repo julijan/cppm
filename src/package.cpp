@@ -48,7 +48,7 @@ Package::Package(
 	this->registeredAt = registeredAt;
 };
 
-void Package::create(const char *const name)
+bool Package::create(const char *const name)
 {
 
 	if (Package::packageExists(name)) {
@@ -56,7 +56,7 @@ void Package::create(const char *const name)
 			fmt::format("Package with name {} already exists", name),
 			OutputType::Warning
 		);
-		return;
+		return false;
 	}
 
 	// get current path
@@ -71,7 +71,7 @@ void Package::create(const char *const name)
 			fmt::format("Path {} exists", projectDir.string()),
 			OutputType::Warning
 		);
-		return;
+		return false;
 	}
 
 	// project dir does not exist, create it
@@ -79,7 +79,7 @@ void Package::create(const char *const name)
 		std::filesystem::create_directory(projectDir);
 	} catch(std::filesystem::filesystem_error e) {
 		PrintNice::error(fmt::format("Error creating project directory: {}", e.what()), ErrorSeverity::Medium);
-		return;
+		return false;
 	}
 
 	// create sub-directories
@@ -186,6 +186,8 @@ run `cppm help` to learn about all the features at your disposal.
 	Package::generatePremake(pkg);
 
 	PrintNice::print(fmt::format("Package created in directory {}", name), OutputType::Success);
+
+	return true;
 }
 
 // create includes/lib and includes/src

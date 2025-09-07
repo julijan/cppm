@@ -40,11 +40,13 @@ int main(int argc, const char* argv[]) {
 		// initialize a c++ project (managed package)
 		if (isPackage) {
 			// disallow creating a package within existing package
-			std::cerr << "Can't create a package within a package. Current package is " << currentPackageName << std::endl;
-			return 0;
+			PrintNice::print(
+				fmt::format("Can't create a package within a package. Current package is {}", currentPackageName),
+				OutputType::Warning
+			);
+			return 1;
 		}
-		Package::create(argv[2]);
-		return 0;
+		return Package::create(argv[2]) ? 0 : 1;
 	}
 
 	if (strcmp(command, "list") == 0 || strcmp(command, "ls") == 0) {
