@@ -149,6 +149,12 @@ bool Package::create(const char *const name)
 	std::filesystem::path gitignorePath = Package::getPath<1>(pkg, { ".gitignore" });
 	std::ofstream fsGitIgnore(gitignorePath);
 	fsGitIgnore << "includes" << std::endl;
+	fsGitIgnore << "bin" << std::endl;
+	fsGitIgnore << "obj" << std::endl;
+	fsGitIgnore << ".vscode" << std::endl;
+	fsGitIgnore << "Makefile" << std::endl;
+	fsGitIgnore << "*.make" << std::endl;
+	fsGitIgnore << "tests" << std::endl;
 	fsGitIgnore.close();
 
 	// create README.md
