@@ -317,6 +317,59 @@ int main(int argc, const char* argv[]) {
 		return 0;
 	}
 
+	if (strcmp(command, "test") == 0) {
+		// create, remove or run tests
+
+		if (!isPackage) {
+			PrintNice::warning("test command can only be used within a package");
+			return 1;
+		}
+
+		Package pkg = std::get<Package>(package);
+
+		if (!pkg.managed) {
+			PrintNice::warning("test command can only be used within a managed package");
+			return 1;
+		}
+
+		// within a managed package, determine what to do
+		if (argc == 2) {
+			// no additional arguments, run all tests
+			// TODO
+			return 0;
+		}
+
+		const char* subcommand = argv[2];
+
+		if (strcmp(subcommand, "add") == 0) {
+			// create new test(s)
+			if (argc < 4) {
+				PrintNice::warning("No test names provided");
+				return 1;
+			}
+
+			for (int i = 3; i < argc; i++) {
+				Package::testCreate(pkg, argv[i]);
+			}
+
+			return 0;
+		}
+
+		if (strcmp(subcommand, "remove")) {
+			// remove a test
+			// TODO
+			return 0;
+		}
+
+		if (strcmp(subcommand, "run")) {
+			// run a test
+			// TODO
+			return 0;
+		}
+
+		return 0;
+	}
+
 	if (strcmp(command, "mv") == 0 || strcmp(command, "move") == 0) {
 		// move project to given path updating dependendents
 

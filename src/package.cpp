@@ -25,6 +25,7 @@ Package::Package(std::string name, std::string path, PackageType type, bool mana
 	this->registeredAt = utils::time::unixTimestamp();
 	this->linkableObjects = std::vector<std::string>();
 	this->linkableObjects = std::vector<std::string>();
+	this->tests = std::vector<std::string>();
 }
 
 Package::Package(
@@ -34,6 +35,7 @@ Package::Package(
 	std::string version,
 	std::vector<std::string> linkableObjects,
 	std::vector<std::string> dependencies,
+	std::vector<std::string> tests,
 	bool managed,
 	int registeredAt)
 {
@@ -43,6 +45,7 @@ Package::Package(
 	this->version = version;
 	this->linkableObjects = linkableObjects;
 	this->dependencies = dependencies;
+	this->tests = tests;
 	this->managed = managed;
 	this->registeredAt = registeredAt;
 };
@@ -83,6 +86,7 @@ bool Package::create(const char *const name)
 
 	// create sub-directories
 	std::filesystem::create_directory(utils::fs::extendPath<1>(projectDir, { "src" }));
+	std::filesystem::create_directory(utils::fs::extendPath<1>(projectDir, { "tests" }));
 	Package::createIncludesDirectories(projectDir);
 
 	// select project type
@@ -154,7 +158,7 @@ bool Package::create(const char *const name)
 	fsGitIgnore << ".vscode" << std::endl;
 	fsGitIgnore << "Makefile" << std::endl;
 	fsGitIgnore << "*.make" << std::endl;
-	fsGitIgnore << "tests" << std::endl;
+	fsGitIgnore << "tests/bin" << std::endl;
 	fsGitIgnore.close();
 
 	// create README.md
@@ -167,6 +171,9 @@ The following is created:
 +-src (all your code goes here)
 |--projectName.cpp (entry point for your application with a simple "Hello World" application)
 +-includes (all dependencies you include will be placed here, never create files here!)
+|--src (dependency include files)
+|--lib (dependency lib files)
++-tests (test files will be created here)
 |-premake5.lua (this file is used to describe your project to the compiler)
 |-.gitignore (includes directories ignored, this does not mean they will not be pushed to remote, to learn about this run cppm help push)
 |-README.md (this file, feel free to edit or delete it)
@@ -220,6 +227,54 @@ void Package::createIncludesDirectories(const std::filesystem::path& p)
 	if (!std::filesystem::exists(includesLib)) {
 		std::filesystem::create_directory(includesLib);
 	}
+}
+
+bool Package::testCreate(Package &pkg, const char *name)
+{
+	auto existing = std::find_if(
+		pkg.tests.begin(),
+		pkg.tests.end(),
+		[name](std::string& testName) {
+			return strcmp(testName.c_str(), name) == 0;
+		}
+	);
+
+	if (existing != pkg.tests.end()) {
+		PrintNice::warning(fmt::format("Test {} already exists", name));
+		return false;
+	}
+
+	// make sure ./tests directory exists, create it if needed
+	std::filesystem::path testsPath = Package::getPath<1>(pkg, { "tests" });
+	if (!std::filesystem::exists(testsPath)) {
+		std::filesystem::create_directory(testsPath);
+	}
+
+	// create cpp file with boilerplate
+	std::string fileName = name;
+	fileName += ".cpp";
+	std::ofstream fs(Package::getPath<2>(pkg, { "tests", fileName.c_str() }));
+	if (!fs.is_open()) {
+		PrintNice::error("Error creating test file");
+		return false;
+	}
+	fs << "// Test: " << name << std::endl;
+	fs << "// exit code = 0 - test passed" << std::endl;
+	fs << "// exit code > 0 - test failed\n" << std::endl;
+	fs << "int main() {" << std::endl;
+	fs << "\treturn 0;" << std::endl;
+	fs << '}' << std::endl;
+	fs.close();
+
+	// update in registry
+	pkg.tests.push_back(std::string(name));
+	Package::updateRegistry(pkg);
+
+	PrintNice::success(fmt::format("Test {} created", name));
+
+	Package::generatePremake(pkg);
+
+	return true;
 }
 
 template <int Depth>
@@ -1189,6 +1244,13 @@ bool Package::checkPath(const std::filesystem::path& path, bool asManaged, bool 
 	}
 	
 	if (strict) {
+		// check for /tests
+		auto includesTestsPath = utils::fs::extendPath<1>(path, { "tests" });
+		if (!std::filesystem::exists(includesTestsPath)) {
+			PrintNice::error("Package is missing it's /tests directory", ErrorSeverity::Low);
+			return false;
+		}
+
 		// strict mode checks for files that can be generated, so they don't have to exist
 		// in strict mode, must contain premake5.lua
 		auto luaPath = utils::fs::extendPath<1>(path, { "premake5.lua" });
@@ -1348,7 +1410,8 @@ void Package::fixPath(const std::filesystem::path &path)
 		utils::fs::extendPath<1>(path, { "src" }),
 		utils::fs::extendPath<1>(path, { "includes" }),
 		utils::fs::extendPath<2>(path, { "includes", "src" }),
-		utils::fs::extendPath<2>(path, { "includes", "lib" })
+		utils::fs::extendPath<2>(path, { "includes", "lib" }),
+		utils::fs::extendPath<1>(path, { "tests" })
 	};
 
 	// check each required path
@@ -1385,7 +1448,7 @@ bool Package::isLibrary(const Package &pkg)
 
 void Package::generatePremake(const Package &pkg)
 {
-	std::filesystem::path premakePath = std::filesystem::path(pkg.path).append("premake5.lua");
+	std::filesystem::path premakePath = Package::getPath<1>(pkg, { "premake5.lua" });
 	std::ofstream fstream(premakePath);
 
 	if (!fstream.is_open()) {
@@ -1408,10 +1471,10 @@ void Package::generatePremake(const Package &pkg)
 	fstream << "\tincludedirs { \"./includes/src/**\" }" << std::endl;
 	fstream << "\tlibdirs { \"./includes/lib/**\" }" << std::endl;
 
+	std::set<std::string> linked = Package::listLinkable(pkg);
+
 	if (pkg.dependencies.size() > 0) {
 		// link libraries
-		std::set<std::string> linked = Package::listLinkable(pkg);
-
 		if (linked.size() > 0) {
 			// include links in premake
 			fstream << "\tlinks {" << std::endl;
@@ -1434,43 +1497,46 @@ void Package::generatePremake(const Package &pkg)
 	fstream << "\t\tdefines { \"NDEBUG\" }" << std::endl;
 	fstream << "\t\toptimize \"On\"" << std::endl;
 
-	// project test
-	fstream << '\n';
-	fstream << "project \"" << pkg.name << "Test\"" << std::endl; // variable
-	fstream << "\tlanguage \"C++\"" << std::endl;
-	fstream << "\tkind \"ConsoleApp\"" << std::endl;
-	fstream << "\tcppdialect \"C++20\"" << std::endl;
-	fstream << "\tarchitecture \"x64\"" << std::endl;
-	fstream << "\ttargetdir \"tests/%{cfg.buildcfg}\"" << std::endl;
-	fstream << "\tfiles { \"./src/test.cpp\" }" << std::endl;
-	fstream << "\tincludedirs { \"./src\", \"./includes\" }" << std::endl;
+	// tests projects
+	for (const std::string& testName: pkg.tests) {
+		fstream << '\n';
+		fstream << "project \"Test-" << testName << "\"" << std::endl; // variable
+		fstream << "\tlanguage \"C++\"" << std::endl;
+		fstream << "\tkind \"ConsoleApp\"" << std::endl;
+		fstream << "\tcppdialect \"C++20\"" << std::endl;
+		fstream << "\tarchitecture \"x64\"" << std::endl;
+		fstream << "\ttargetdir \"./tests/bin\"" << std::endl;
+		fstream << "\tfiles { \"./tests/" << testName << ".cpp\" }" << std::endl; // variable
+		fstream << "\tincludedirs { \"./src/**/*\", \"./includes/**/*\" }" << std::endl;
+	
+		if (Package::isLibrary(pkg)) {
+			// link package itself to test, if pkg is a library
+			fstream << "\tlinks {" << std::endl;
+			fstream << "\t\t\"" << pkg.name << "\"\n";
 
-	if (Package::isLibrary(pkg)) {
-		// link package itself to test, if pkg is a library
-		fstream << "\tlinks {" << std::endl;
-		
-		if (pkg.linkableObjects.size() > 0) {
-			for (std::string link: pkg.linkableObjects) {
-				fstream << "\t\t\"" << link << '"';
+			// link libraries
+			if (pkg.dependencies.size() > 0) {
+				if (linked.size() > 0) {
+					const auto last = --linked.end();
+					for (auto i = linked.begin(); i != linked.end(); ++i) {
+						fstream << "\t\t\"" << *i << '"' << (i == last ? "" : ",") << std::endl;
+					}
+				}
 			}
-		} else {
-			// pkg is a library with no linkableObjects
-			// assume pkg.name
-			fstream << "\t\t\"" << pkg.name << "\"" << std::endl;
+	
+			fstream << "\t}" << std::endl;
+	
 		}
-
-		fstream << "\t}" << std::endl;
-
+	
+		// filters
+		fstream << "\tfilter \"configurations:Debug\"" << std::endl;
+		fstream << "\t\tdefines { \"DEBUG\" }" << std::endl;
+		fstream << "\t\tsymbols \"On\"" << std::endl;
+	
+		fstream << "\tfilter \"configurations:Release\"" << std::endl;
+		fstream << "\t\tdefines { \"NDEBUG\" }" << std::endl;
+		fstream << "\t\toptimize \"On\"" << std::endl;
 	}
-
-	// filters
-	fstream << "\tfilter \"configurations:Debug\"" << std::endl;
-	fstream << "\t\tdefines { \"DEBUG\" }" << std::endl;
-	fstream << "\t\tsymbols \"On\"" << std::endl;
-
-	fstream << "\tfilter \"configurations:Release\"" << std::endl;
-	fstream << "\t\tdefines { \"NDEBUG\" }" << std::endl;
-	fstream << "\t\toptimize \"On\"" << std::endl;
 
 	// done, flush and close
 	fstream.flush();
@@ -1854,6 +1920,18 @@ void Package::display(const Package& pkg)
 			std::cout << "|- " << objName << std::endl;
 		}
 	}
+
+	if (pkg.managed) {
+		PrintNice::print();
+		if (pkg.tests.size() == 0) {
+			PrintNice::print("No tests", OutputType::Normal, TextStyle::Italic);
+		} else {
+			PrintNice::print("Tests:", OutputType::Normal, TextStyle::Bold);
+			for (const std::string& test: pkg.tests) {
+				PrintNice::print(test.c_str());
+			}
+		}
+	}
 }
 
 void Package::display(const char *const name)
@@ -1893,6 +1971,7 @@ Package Package::fromJSON(PackageJSON data)
 
 	std::vector<std::string> linkableObjects;
 	std::vector<std::string> dependencies;
+	std::vector<std::string> tests;
 
 	for (auto val: linkableObjectsRaw) {
 		linkableObjects.push_back(std::string(val.as_string()));
@@ -1902,6 +1981,11 @@ Package Package::fromJSON(PackageJSON data)
 		dependencies.push_back(std::string(val.as_string()));
 	}
 
+	if (data.contains("tests")) {
+		for (auto val: data.at("tests").as_array()) {
+			tests.push_back(std::string(val.as_string()));
+		}
+	}
 
 	return Package(
 		data.at("name").as_string().c_str(),
@@ -1910,6 +1994,7 @@ Package Package::fromJSON(PackageJSON data)
 		data.at("version").as_string().c_str(),
 		linkableObjects,
 		dependencies,
+		tests,
 		data.at("managed").as_bool(),
 		data.at("registeredAt").as_int64()
 	);
@@ -1918,15 +2003,18 @@ Package Package::fromJSON(PackageJSON data)
 PackageJSON Package::toJSON(Package &pkg)
 {
 	boost::json::array linkable;
-
 	for (auto item: pkg.linkableObjects) {
 		linkable.push_back(boost::json::string(item));
 	}
 
 	boost::json::array dependencies;
-
 	for (auto item: pkg.dependencies) {
 		dependencies.push_back(boost::json::string(item));
+	}
+
+	boost::json::array tests;
+	for (auto item: pkg.tests) {
+		tests.push_back(boost::json::string(item));
 	}
 
 	PackageJSON json;
@@ -1938,5 +2026,6 @@ PackageJSON Package::toJSON(Package &pkg)
 	json["registeredAt"] = pkg.registeredAt;
 	json["linkableObjects"] = linkable;
 	json["dependencies"] = dependencies;
+	json["tests"] = tests;
 	return json;
 }

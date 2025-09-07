@@ -35,6 +35,7 @@ public:
 		std::string version,
 		std::vector<std::string> linkableObjects,
 		std::vector<std::string> dependencies,
+		std::vector<std::string> tests,
 		bool managed,
 		int registeredAt
 	);
@@ -45,6 +46,9 @@ public:
 	// creates /includes, /includes/src and /includes/lib
 	static void createIncludesDirectories(const Package& pkg);
 	static void createIncludesDirectories(const std::filesystem::path& p);
+
+	// create a new test
+	static bool testCreate(Package& pkg, const char* name);
 
 	// return package path
 	// subdirs is an array of subdirectories within the package path

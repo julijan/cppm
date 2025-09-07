@@ -20,6 +20,7 @@ struct PackageData {
 	std::string version;
 	std::string path;
 	PackageType type;
+	std::vector<std::string> tests;
 	std::vector<std::string> linkableObjects;
 	std::vector<std::string> dependencies;
 	bool managed;
