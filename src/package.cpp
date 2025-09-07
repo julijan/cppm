@@ -1039,7 +1039,7 @@ bool Package::build(const Package &pkg)
 	}
 
 	// build
-	std::cout << "Compiling..." << std::endl;
+	PrintNice::print("Compiling...", OutputType::Info);
 	return utils::system::runCommand("cd " + pkg.path + " && make") == 0;
 }
 
@@ -1290,7 +1290,7 @@ void Package::fixPath(const std::filesystem::path &path)
 
 bool Package::generateCmake(const Package &pkg)
 {
-	std::cout << "Generating cmake..." << std::endl;
+	PrintNice::print("Generating cmake...", OutputType::Info);
 	return utils::system::runCommand("cd " + pkg.path + " && premake5 gmake > /dev/null") == 0;
 }
 
