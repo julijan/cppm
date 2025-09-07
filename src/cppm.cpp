@@ -2,6 +2,7 @@
 #include <cstring>
 #include <algorithm>
 #include <filesystem>
+#include <span>
 
 #include "format.h"
 
@@ -335,8 +336,7 @@ int main(int argc, const char* argv[]) {
 		// within a managed package, determine what to do
 		if (argc == 2) {
 			// no additional arguments, run all tests
-			// TODO
-			return 0;
+			return Package::testsRun(pkg) ? 0 : 1;
 		}
 
 		const char* subcommand = argv[2];
@@ -355,17 +355,31 @@ int main(int argc, const char* argv[]) {
 			return 0;
 		}
 
-		if (strcmp(subcommand, "remove")) {
+		if (strcmp(subcommand, "remove") == 0) {
 			// remove a test
 			// TODO
 			return 0;
 		}
 
-		if (strcmp(subcommand, "run")) {
-			// run a test
-			// TODO
-			return 0;
+		if (strcmp(subcommand, "run") == 0) {
+			// run test(s)
+			
+			if (argc < 4) {
+				// no test names listed
+				// run all tests
+				return Package::testsRun(pkg) ? 0 : 1;
+			}
+			
+			// test names listed, run them
+			std::vector<std::string> testNames;
+			for (int i = 3; i < argc; i++) {
+				testNames.push_back(argv[i]);
+			}
+
+			return Package::testsRun(pkg, testNames) ? 0 : 1;
 		}
+
+		PrintNice::warning(fmt::format("Sub-command {} not recognized", subcommand));
 
 		return 0;
 	}

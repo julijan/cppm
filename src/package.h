@@ -50,6 +50,15 @@ public:
 	// create a new test
 	static bool testCreate(Package& pkg, const char* name);
 
+	// run given test
+	static bool testRun(const Package& pkg, const char* const name);
+
+	// run all tests for a package, returns false if any tests fail
+	static bool testsRun(const Package& pkg);
+
+	// run a subset of tests
+	static bool testsRun(const Package& pkg, const std::vector<std::string>& tests);
+
 	// return package path
 	// subdirs is an array of subdirectories within the package path
 	// eg. ["includes", "lib"] -> [package.path]/includes/lib
@@ -210,7 +219,7 @@ public:
 	static std::string linkableObject(const std::filesystem::path& p);
 
 	// build given package
-	static bool build(const Package& pkg);
+	static bool build(const Package& pkg, const char* target = nullptr);
 
 	// verify package integrity
 	// non-managed: must exist on the filesystem

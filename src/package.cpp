@@ -277,6 +277,109 @@ bool Package::testCreate(Package &pkg, const char *name)
 	return true;
 }
 
+bool Package::testRun(const Package& pkg, const char* const name)
+{
+	// make sure Package has given test
+	auto exists = std::find_if(
+		pkg.tests.begin(),
+		pkg.tests.end(),
+		[name](const std::string& testName) {
+			return strcmp(testName.c_str(), name) == 0;
+		}
+	);
+
+	if (exists == pkg.tests.end()) {
+		PrintNice::warning(fmt::format("Package {} has no test {}", pkg.name, name));
+		return false;
+	}
+
+	PrintNice::info(fmt::format("Running test {}", name));
+
+	// make sure tests directory exists
+	const std::filesystem::path testsPath = Package::getPath<1>(pkg, { "tests" });
+	if (!std::filesystem::exists(testsPath)) {
+		PrintNice::error("./tests directory missing!", ErrorSeverity::High);
+		return false;
+	}
+
+	// make sure test binary exists, if not build it
+	std::string binaryName = "Test-";
+	binaryName += name;
+	const std::filesystem::path binariesPath = utils::fs::extendPath<1>(testsPath, { "bin" });
+	const std::filesystem::path testBin = utils::fs::extendPath<1>(binariesPath, { binaryName.c_str() });
+	if (!std::filesystem::exists(testBin)) {
+		// build test binary
+		if (!Package::build(pkg, binaryName.c_str())) {
+			PrintNice::error(fmt::format("Compiling test {} failed", name), ErrorSeverity::Low);
+			return false;
+		}
+
+		// make sure test binary exists after build
+		if (!std::filesystem::exists(testBin)) {
+			PrintNice::error(
+				fmt::format("Test binary for test {} not found in {}", name, testBin.string()),
+				ErrorSeverity::Low
+			);
+			return false;
+		}
+	}
+
+	// test binary exists, run it
+	int exitCode = utils::system::runCommand("cd " + binariesPath.string() + " && ./" + binaryName);
+	bool passed = exitCode == 0;
+
+	if (passed) {
+		PrintNice::success(fmt::format("✓ Test {} passed", name));
+	} else {
+		PrintNice::error(fmt::format("✗ Test {} failed with exit code {}", name, exitCode));
+	}
+
+	return passed;
+}
+
+bool Package::testsRun(const Package &pkg)
+{
+	return Package::testsRun(pkg, pkg.tests);
+}
+
+bool Package::testsRun(const Package &pkg, const std::vector<std::string>& tests)
+{
+	if (tests.size() == 0) {
+		// no tests specified
+		PrintNice::print(fmt::format("No tests specified", pkg.name), OutputType::Normal);
+		return true;
+	}
+
+	if (pkg.tests.size() == 0) {
+		// no tests
+		PrintNice::print(fmt::format("Package {} has no tests", pkg.name), OutputType::Normal);
+		return true;
+	}
+
+	std::string message = tests.size() == pkg.tests.size() ?
+		fmt::format("Running all tests for {}...\n", pkg.name) :
+		fmt::format("Running {} test(s) for {}...\n", tests.size(), pkg.name);
+	PrintNice::print(message.c_str(), OutputType::Info, TextStyle::Italic);
+
+	int failed = 0;
+	for (const std::string& testName: tests) {
+		if (!Package::testRun(pkg, testName.c_str())) {
+			failed++;
+		}
+		PrintNice::print();
+	}
+
+	if (failed > 0) {
+		PrintNice::warning(fmt::format("{}/{} test(s) failed", failed, tests.size()));
+		return false;
+	}
+
+	// all tests pass
+	PrintNice::success("All tests pass!");
+
+	return true;
+}
+
 template <int Depth>
 std::filesystem::path Package::getPath(const char *const pkgName, SmartArray<const char*, Depth> subdirs)
 {
@@ -1171,7 +1274,7 @@ std::string Package::linkableObject(const std::filesystem::path &p)
 	return fileName.substr(0, fileName.length() - 2);
 }
 
-bool Package::build(const Package &pkg)
+bool Package::build(const Package &pkg, const char* target)
 {
 	if (!Package::generateCmake(pkg)) {
 		return false;
@@ -1179,7 +1282,11 @@ bool Package::build(const Package &pkg)
 
 	// build
 	PrintNice::print("Compiling...", OutputType::Info);
-	return utils::system::runCommand("cd " + pkg.path + " && make") == 0;
+	std::string command = "cd " + pkg.path + " && make";
+	if (target != nullptr) {
+		command += target;
+	}
+	return utils::system::runCommand(command) == 0;
 }
 
 bool Package::check(const Package &pkg, bool strict)
