@@ -1284,6 +1284,7 @@ bool Package::build(const Package &pkg, const char* target)
 	PrintNice::print("Compiling...", OutputType::Info);
 	std::string command = "cd " + pkg.path + " && make";
 	if (target != nullptr) {
+		command += ' ';
 		command += target;
 	}
 	return utils::system::runCommand(command) == 0;
