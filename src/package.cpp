@@ -380,6 +380,94 @@ bool Package::testsRun(const Package &pkg, const std::vector<std::string>& tests
 	return true;
 }
 
+bool Package::testRemove(Package &pkg, const char *name)
+{
+	const auto position = std::find_if(
+		pkg.tests.begin(),
+		pkg.tests.end(),
+		[name](const std::string& testName) {
+			return strcmp(testName.c_str(), name) == 0;
+		}
+	);
+
+	if (position == pkg.tests.end()) {
+		// package does not have the test
+		PrintNice::warning(
+			fmt::format("Can't remove test {} from package {}, test does not exist", name, pkg.name)
+		);
+		return false;
+	}
+
+	// confirm action
+	PrintStream stream = PrintNice::stream();
+
+	stream <<
+		"You are about to remove test" <<
+		TextStyledToken{
+			name,
+			OutputType::Info,
+			TextStyle::Bold
+		} <<
+		"from package" << pkg.name << StreamOut();
+
+	stream <<
+		"Test source and binary will be" <<
+		TextStyledToken{
+			"permanently deleted",
+			OutputType::Error,
+			TextStyle::Bold | TextStyle::Underline
+		} << StreamOut();
+
+	stream << "Do you want to proceed?" << StreamOut();
+
+	stream << "(Y)Yes, delete test / (N) No, cancel" << StreamOut();
+
+	char action;
+	while (true) {
+		std::cin >> action;
+
+		if (action == 'Y' || action == 'y') {
+			// proceed with delete
+			break;
+		}
+
+		if (action == 'N' || action == 'n') {
+			// canceled
+			return false;
+		}
+	}
+
+	// remove test from package registry data
+	pkg.tests.erase(position);
+	Package::updateRegistry(pkg);
+
+	// remove source and binary files
+	std::string testSrcName = name;
+	testSrcName += ".cpp";
+
+	std::string testBinName = "Test-";
+	testBinName += name;
+
+	std::filesystem::path srcPath = Package::getPath<2>(pkg, { "tests", testSrcName.c_str() });
+	std::filesystem::path binPath = Package::getPath<3>(pkg, { "tests", "bin", testBinName.c_str() });
+
+	if (std::filesystem::exists(srcPath)) {
+		std::filesystem::remove(srcPath);
+	}
+
+	if (std::filesystem::exists(binPath)) {
+		std::filesystem::remove(binPath);
+	}
+
+	// re-generate premake
+	Package::generatePremake(pkg);
+
+	// done
+	PrintNice::success(fmt::format("Removed test {} from {}", name, pkg.name));
+
+	return true;
+}
+
 template <int Depth>
 std::filesystem::path Package::getPath(const char *const pkgName, SmartArray<const char*, Depth> subdirs)
 {

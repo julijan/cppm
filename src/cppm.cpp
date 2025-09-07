@@ -357,8 +357,13 @@ int main(int argc, const char* argv[]) {
 
 		if (strcmp(subcommand, "remove") == 0) {
 			// remove a test
-			// TODO
-			return 0;
+
+			if (argc < 4) {
+				PrintNice::warning("Test name not provided");
+				return 1;
+			}
+
+			return Package::testRemove(pkg, argv[3]) ? 0 : 1;
 		}
 
 		if (strcmp(subcommand, "run") == 0) {

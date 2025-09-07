@@ -59,6 +59,9 @@ public:
 	// run a subset of tests
 	static bool testsRun(const Package& pkg, const std::vector<std::string>& tests);
 
+	// remove given test
+	static bool testRemove(Package& pkg, const char* name);
+
 	// return package path
 	// subdirs is an array of subdirectories within the package path
 	// eg. ["includes", "lib"] -> [package.path]/includes/lib
