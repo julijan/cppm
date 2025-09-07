@@ -84,15 +84,16 @@ int main(int argc, const char* argv[]) {
 			// if within a package, list dependencies
 
 			if (!isPackage) {
-				std::cout << "Invalid use of include command. Try cppm help include." << std::endl;
-				return 0;
+				PrintNice::warning("Invalid use of include command.");
+				help::printHelp("include");
+				return 1;
 			}
 
 			Package pkg = std::get<Package>(package);
 
 			if (!pkg.managed) {
-				std::cerr << "Can't use include in a non-managed package" << std::endl;
-				return 0;
+				PrintNice::warning("Can't use include in a non-managed package");
+				return 1;
 			}
 
 			Package::listDependencies(pkg);
@@ -101,20 +102,19 @@ int main(int argc, const char* argv[]) {
 
 		// add listed package(s) as dependency of current package
 		if (!isPackage) {
-			std::cerr << "To include a package as a dependency, you must be within an existing package" << std::endl;
-			return 0;
+			PrintNice::warning("To include a package as a dependency, you must be within an existing package");
+			return 1;
 		}
 		
 		Package pkg = std::get<Package>(package);
 
 		if (!pkg.managed) {
-			std::cerr << "Can't use include in a non-managed package" << std::endl;
-			return 0;
+			PrintNice::warning("Can't use include in a non-managed package");
+			return 1;
 		}
 
 		for (int i = 2; i < argc; i++) {
 			Package::addDependency(pkg, argv[i]);
-			std::cout << argv[2] << " added as a dependecy of " << pkg.name << std::endl;
 		}
 
 		return 0;
@@ -124,20 +124,20 @@ int main(int argc, const char* argv[]) {
 		// remove a dependency
 
 		if (!isPackage) {
-			std::cerr << "To remove a dependency you must be withn a package." << std::endl;
-			return 0;
+			PrintNice::warning("To remove a dependency you must be withn a package.");
+			return 1;
 		}
 
 		if (argc < 3) {
-			std::cerr << "You must list at least one package to exclude" << std::endl;
-			return 0;
+			PrintNice::warning("You must list at least one package to exclude");
+			return 1;
 		}
 
 		Package pkg = std::get<Package>(package);
 
 		if (!pkg.managed) {
-			std::cerr << "Can't use exclude in a non-managed package" << std::endl;
-			return 0;
+			PrintNice::warning("Can't use exclude in a non-managed package");
+			return 1;
 		}
 
 		for (int i = 2; i < argc; i++) {

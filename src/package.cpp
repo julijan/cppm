@@ -677,7 +677,7 @@ std::vector<Package> Package::getDependencies(const Package &pkg)
 void Package::addDependency(Package &pkg, Package &dep)
 {
 	if (Package::isDependency(pkg, dep)) {
-		std::cerr << dep.name << " already a dependecy of " << pkg.name << std::endl;
+		PrintNice::warning(fmt::format("{} already a dependecy of {}", dep.name, pkg.name));
 		return;
 	}
 
@@ -703,13 +703,15 @@ void Package::addDependency(Package &pkg, Package &dep)
 	// 		Package::addDependency(pkg, transient.c_str());
 	// 	}
 	// }
+
+	PrintNice::success(fmt::format("{} added as a dependecy of {}", dep.name, pkg.name));
 }
 
 void Package::addDependency(Package &pkg, const char *const name)
 {
 	MaybePackage dependency = Package::get(name);
 	if (std::holds_alternative<PackageNotFound>(dependency)) {
-		std::cerr << "Package " << name << " does not exist" << std::endl;
+		PrintNice::warning(fmt::format("Package {} does not exist", name));
 		return;
 	}
 
@@ -719,7 +721,7 @@ void Package::addDependency(Package &pkg, const char *const name)
 void Package::removeDependency(Package &pkg, Package &dep)
 {
 	if (!Package::isDependency(pkg, dep)) {
-		std::cerr << dep.name << " is not a dependency of " << pkg.name << std::endl;
+		PrintNice::warning(fmt::format("{} is not a dependency of {}", dep.name, pkg.name));
 		return;
 	}
 
@@ -742,7 +744,7 @@ void Package::removeDependency(Package &pkg, Package &dep)
 	// re-generate premake
 	Package::generatePremake(pkg);
 
-	std::cout << "Dependency " << dep.name << " removed" << std::endl;
+	PrintNice::success(fmt::format("Dependency {} removed", dep.name));
 }
 
 void Package::removeDependency(Package &pkg, const char *const name)
@@ -750,7 +752,7 @@ void Package::removeDependency(Package &pkg, const char *const name)
 	MaybePackage dependency = Package::get(name);
 
 	if (std::holds_alternative<PackageNotFound>(dependency)) {
-		std::cerr << "Can't remove non-existent dependency " << name << std::endl;
+		PrintNice::warning(fmt::format("Can't remove non-existent dependency {}", name));
 		return;
 	}
 
@@ -783,7 +785,10 @@ void Package::linkDependency(const Package &pkg, const Package &dep)
 		for (const std::string& depName: dep.dependencies) {
 			MaybePackage dep = Package::get(depName.c_str());
 			if (std::holds_alternative<PackageNotFound>(dep)) {
-				std::cerr << "Skipped linking a missing dependency " << depName << std::endl;
+				PrintNice::error(
+					fmt::format("Skipped linking a missing dependency {}", depName),
+					ErrorSeverity::Low
+				);
 				continue;
 			}
 
@@ -811,7 +816,7 @@ void Package::unlinkDependency(const Package &pkg, const char *depName)
 	MaybePackage depMaybe = Package::get(depName);
 
 	if (std::holds_alternative<PackageNotFound>(depMaybe)) {
-		std::cerr << "Attempted to unlink a non-existent dependency" << std::endl;
+		PrintNice::warning(fmt::format("Attempted to unlink a non-existent dependency {}", depName));
 		return;
 	}
 
@@ -831,7 +836,7 @@ void Package::unlinkDependency(const Package &pkg, const char *depName)
 		for (const std::string& depName: dep.dependencies) {
 			MaybePackage dep = Package::get(depName.c_str());
 			if (std::holds_alternative<PackageNotFound>(dep)) {
-				std::cerr << "Skipped unlinking a missing dependency " << depName << std::endl;
+				PrintNice::warning(fmt::format("Skipped unlinking a missing dependency {}", depName));
 				continue;
 			}
 
@@ -903,7 +908,10 @@ bool Package::isTransientDependency(const Package& pkg, const Package& dep)
 		[&dep](const std::string& depName) {
 			MaybePackage pkgDep = Package::get(depName.c_str());
 			if (std::holds_alternative<PackageNotFound>(pkgDep)) {
-				std::cerr << "Package missing in chain " << depName << std::endl;
+				PrintNice::error(
+					fmt::format("Package {} missing in chain", depName),
+					ErrorSeverity::Medium
+				);
 				return false;
 			}
 
@@ -1527,7 +1535,10 @@ void Package::updateRegistry(Package &pkg)
 	}
 
 	// if we got here it means package was not found in the registry
-	std::cerr << "Can't update package registry, package " << pkg.name << " not registered" << std::endl;
+	PrintNice::error(
+		fmt::format("Can't update package registry, package {} not registered", pkg.name),
+		ErrorSeverity::Medium
+	);
 }
 
 void Package::addSrc(const Package& pkg, const std::string& srcName)
