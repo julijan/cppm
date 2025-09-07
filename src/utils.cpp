@@ -175,7 +175,13 @@ namespace utils {
 		}
 
 		int runCommand(const char* const command) {
-			return std::system(command);
+			int exitCode = std::system(command);
+			if (type() == SystemType::Unix) {
+				// on Unix-like systems, exit code is shifted 8 bits to the left
+				// shift right to return the raw exit code
+				return exitCode >> 8;
+			}
+			return exitCode;
 		}
 
 		int runCommand(std::string command) {
