@@ -292,7 +292,9 @@ void Package::registerPackage(const std::filesystem::path &p, bool managed, cons
 	
 	if (std::holds_alternative<Package>(existing)) {
 		Package existingPkg = std::get<Package>(existing);
-		std::cerr << existingPkg.name << " already registered at path " << existingPkg.path << std::endl;
+		PrintNice::warning(
+			fmt::format("{} already registered at path {}", existingPkg.name, existingPkg.path)
+		);
 		return;
 	}
 
@@ -301,7 +303,9 @@ void Package::registerPackage(const std::filesystem::path &p, bool managed, cons
 		// attempted to register directory as a managed package
 		// directory is not package-like
 		// offer to interactively fix package
-		std::cout << "Current directory does not conform to managed package structure. Do you want to interactively fix it so you can proceed with the operation? (Y)Yes / (N)No" << std::endl;
+		PrintNice::print("Current directory does not conform to managed package structure.");
+		PrintNice::print("Do you want to interactively fix it so you can proceed with the operation?");
+		PrintNice::print("(Y)Yes / (N)No");
 		char action;
 		while (true) {
 			std::cin >> action;
@@ -319,7 +323,10 @@ void Package::registerPackage(const std::filesystem::path &p, bool managed, cons
 
 		if (!Package::checkPath(p, true, false)) {
 			// still does not conform
-			std::cout << "Directory still does not conform, if you approved all fixes and you see this, report an issue" << std::endl;
+			PrintNice::error(
+				"Directory still does not conform, if you approved all fixes and you see this, report an issue",
+				ErrorSeverity::Medium
+			);
 			return;
 		}
 
@@ -344,8 +351,29 @@ void Package::registerPackage(const std::filesystem::path &p, bool managed, cons
 		}
 	}
 
-	std::cout << "Registering current path as a " << (managed ? "managed" : "non-managed") << " package with name " << assumedName << std::endl;
-	std::cout << "If you want to use a different name please enter it bellow and press enter, leave blank to use " << assumedName << std::endl;
+	PrintStream stream = PrintNice::stream();
+
+	stream <<
+		"Registering current path as a" <<
+		(managed ? "managed" : "non-managed") <<
+		"package with name" <<
+		TextStyledToken{
+			assumedName.c_str(),
+			OutputType::Info,
+			0
+		} << StreamOut();
+
+	stream <<
+		TextStyledToken{
+			"If you want to use a different name please enter it bellow and press enter, leave blank to use",
+			OutputType::Normal,
+			TextStyle::Italic
+		} <<
+		TextStyledToken{
+			assumedName.c_str(),
+			OutputType::Info,
+			TextStyle::Italic
+		} << StreamOut();
 
 	// prompt for alternative name
 	std::string nameAlternative;
@@ -378,7 +406,7 @@ void Package::registerPackage(const std::filesystem::path &p, bool managed, cons
 	// register the package
 	Package::addToRegistry(pkg);
 
-	std::cout << "Package " << pkg.name << " registered" << std::endl;
+	PrintNice::success(fmt::format("Package {} registered", pkg.name));
 }
 
 void Package::unregisterPackage(const char *const name)
@@ -387,14 +415,22 @@ void Package::unregisterPackage(const char *const name)
 	MaybePackage pkg = Package::get(name);
 
 	if (std::holds_alternative<PackageNotFound>(pkg)) {
-		std::cerr << "Package " << name << " not registered";
+		PrintNice::warning(fmt::format("Package {} not registered", name));
 		return;
 	}
 
 	if (std::get<Package>(pkg).managed) {
 		// confirm unregistering of managed packages
-		std::cout << "You are about to unregister a managed (your own) package " << name << std::endl;
-		std::cout << "Proceed? (Y)Yes / (N)No" << std::endl;
+		PrintStream stream = PrintNice::stream();
+		stream <<
+			"You are about to unregister a managed package" <<
+			TextStyledToken{
+				name,
+				OutputType::Info,
+				0
+			} << StreamOut();
+		
+		stream << "Proceed? (Y)Yes / (N)No" << StreamOut();
 		char action;
 		while (true) {
 			std::cin >> action;
@@ -414,13 +450,19 @@ void Package::unregisterPackage(const char *const name)
 	std::vector<Package> dependents = Package::dependents(name);
 
 	if (dependents.size() > 0) {
-		std::cout << dependents.size() << " packages depend on " << name << std::endl;
-		std::cout << "If you unregister this package, it will be removed from dependency list of it's dependents, as a result, affected packages may not work as expected" << std::endl;
-		std::cout << "What do you want to do? (C)Cancel / (U)Unregister:" << std::endl;
+		PrintNice::warning(fmt::format("{} packages depend on {}", dependents.size(), name));
+		PrintNice::print("If you unregister this package, it will be removed from dependency list of it's dependents, as a result, affected packages may not work as expected");
+		PrintNice::print("What do you want to do? (L)List dependents / (C)Cancel / (U)Unregister:");
 
 		char action;
 		while (true) {
 			std::cin >> action;
+
+			if (action == 'L' || action == 'l') {
+				Package::listDependents(std::get<Package>(pkg));
+				break;
+			}
+
 			if (action == 'C' || action == 'c') {
 				// user decided to cancel the operation
 				return;
@@ -440,7 +482,7 @@ void Package::unregisterPackage(const char *const name)
 
 	Package::removeFromRegistry(std::get<Package>(pkg));
 
-	std::cout << "Package " << name << " unregistered" << std::endl;
+	PrintNice::success(fmt::format("Package {} unregistered", name));
 }
 
 std::vector<std::filesystem::path> Package::findLinkableObjects(const std::filesystem::path &p)
@@ -1648,7 +1690,7 @@ void Package::vcpkgRegister(const char* pkgName)
 	std::string vcpkgDir = utils::system::appDataDir() + std::filesystem::path::preferred_separator + ".vcpkg";
 
 	if (!std::filesystem::exists(vcpkgDir)) {
-		std::cerr << "Is vcpkg installed? Did not find " << vcpkgDir << std::endl;
+		PrintNice::warning(fmt::format("Is vcpkg installed? Did not find {}", vcpkgDir));
 		return;
 	}
 
@@ -1661,7 +1703,7 @@ void Package::vcpkgRegister(const char* pkgName)
 	FILE* pipe = popen(command.c_str(), "r");
 
 	if (!pipe) {
-		std::cerr << "Error running command vcpkg depend-info" << std::endl;
+		PrintNice::error("Error running command vcpkg depend-info", ErrorSeverity::Low);
 		return;
 	}
 
@@ -1697,7 +1739,10 @@ void Package::vcpkgRegister(const char* pkgName)
 			auto pkgPath = Package::vcpkgPackagePath(packageName);
 
 			if (std::holds_alternative<Empty>(pkgPath)) {
-				std::cerr << "Could not find vcpkg package path for " << packageName << std::endl;
+				PrintNice::error(
+					fmt::format("Could not find vcpkg package path for {}", packageName),
+					ErrorSeverity::Medium
+				);
 				continue;
 			}
 
@@ -1706,7 +1751,10 @@ void Package::vcpkgRegister(const char* pkgName)
 			MaybePackage pkg = Package::get(packageName.c_str());
 
 			if (std::holds_alternative<PackageNotFound>(pkg)) {
-				std::cerr << "Package " << packageName << " expected to be registered at this point" << std::endl;
+				PrintNice::error(
+					fmt::format("Package {} expected to be registered at this point", packageName),
+					ErrorSeverity::Medium
+				);
 				continue;
 			}
 
@@ -1720,7 +1768,10 @@ void Package::vcpkgRegister(const char* pkgName)
 				}
 				MaybePackage depMaybe = Package::get(depnameClean.c_str());
 				if (std::holds_alternative<PackageNotFound>(depMaybe)) {
-					std::cerr << "Dependency of " << packageName << ", " << depnameClean << " expected to be registered at this point" << std::endl;
+					PrintNice::error(
+						fmt::format("Dependency of {}, {} expected to be registered at this point", packageName, depnameClean),
+						ErrorSeverity::Medium
+					);
 					continue;
 				}
 

@@ -159,8 +159,8 @@ int main(int argc, const char* argv[]) {
 		if (argc == 2) {
 			// no arguments provided, must be within package directory
 			if (!isPackage) {
-				std::cerr << "Using unregister without package name(s) can only be done from a project directory" << std::endl;
-				return 0;
+				PrintNice::warning("Using unregister without package name(s) can only be done from a project directory");
+				return 1;
 			}
 
 			Package::unregisterPackage(currentPackageName.c_str());
@@ -179,12 +179,12 @@ int main(int argc, const char* argv[]) {
 	if (strcmp(command, "vcpkg-register") == 0) {
 		// register given package and all it's dependencies from vcpkg
 		if (argc == 2) {
-			std::cerr << "Package name not provided" << std::endl;
-			return 0;
+			PrintNice::warning("Package name not provided");
+			return 1;
 		}
 
 		for (int i = 2; i < argc; i++) {
-			std::cout << "Registering " << argv[i] << " and it's dependencies" << std::endl;
+			PrintNice::info(fmt::format("Registering {}  and it's dependencies", argv[i]));
 			Package::vcpkgRegister(argv[i]);
 		}
 		return 0;
