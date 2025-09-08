@@ -1703,7 +1703,7 @@ void Package::generatePremake(const Package &pkg)
 		fstream << "\tarchitecture \"x64\"" << std::endl;
 		fstream << "\ttargetdir \"./tests/bin\"" << std::endl;
 		fstream << "\tfiles { \"./tests/" << testName << ".cpp\" }" << std::endl; // variable
-		fstream << "\tincludedirs { \"./src/**/*\", \"./includes/**/*\" }" << std::endl;
+		fstream << "\tincludedirs { \"./src\", \"./src/**\", \"./includes/**\" }" << std::endl;
 	
 		if (Package::isLibrary(pkg)) {
 			// link package itself to test, if pkg is a library
