@@ -1778,7 +1778,7 @@ void Package::generateVSC(Package &pkg)
 
 	utils::json::write(configPath, root);
 
-	std::cout << "Generated VSC configuration " << configPath.string() << std::endl;
+	PrintNice::success(fmt::format("Generated VSC configuration in {}", configPath.string()));
 }
 
 MaybePackage Package::inPath(std::filesystem::path p)
