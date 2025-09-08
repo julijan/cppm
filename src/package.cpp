@@ -2100,6 +2100,12 @@ void Package::vcpkgRegister(const char* pkgName)
 			std::string packageName = pkg[0];
 			std::string depsString = pkg[1];
 
+			// remove [...] from packageName
+			const auto end = packageName.find('[');
+			if (end != std::string::npos) {
+				packageName = packageName.substr(0, end);
+			}
+
 			auto pkgPath = Package::vcpkgPackagePath(packageName);
 
 			if (std::holds_alternative<Empty>(pkgPath)) {

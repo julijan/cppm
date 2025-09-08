@@ -132,11 +132,18 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 		}
 	},
 	{
-		.command = "vcpkg-register",
+		.command = "vcpkg",
 		.alias = "",
-		.description = "Register a package from vcpkg repository, registerering all it's dependencies in the process.",
+		.description = "Register or install+register a package from vcpkg repository, registerering all it's dependencies in the process. If you already have a vcpkg package installed use action register, otherwise use action install, it will first install the package using vcpkg, then register it.",
 		.descriptionShort = "Register a package from vcpkg repository",
 		.arguments = {
+			{
+				.name = "register|install",
+				.description = "Action to perform with listed vcpkg packages, can be register or install",
+				.required = true,
+				.list = false,
+				.literal = true
+			},
 			{
 				.name = "packageName",
 				.description = "Package name to register. It must already be installed using vcpkg.",

@@ -177,17 +177,52 @@ int main(int argc, const char* argv[]) {
 		return 0;
 	}
 
-	if (strcmp(command, "vcpkg-register") == 0) {
-		// register given package and all it's dependencies from vcpkg
+	if (strcmp(command, "vcpkg") == 0) {
+
 		if (argc == 2) {
-			PrintNice::warning("Package name not provided");
+			PrintNice::warning("Action not provided, supported actions are register and install");
 			return 1;
 		}
 
-		for (int i = 2; i < argc; i++) {
-			PrintNice::info(fmt::format("Registering {}  and it's dependencies", argv[i]));
-			Package::vcpkgRegister(argv[i]);
+		const char* action = argv[2];
+
+		bool actionRegister = strcmp(action, "register") == 0;
+		bool actionInstall = strcmp(action, "install") == 0;
+
+		bool actionRecognized = actionRegister || actionInstall;
+
+		if (!actionRecognized) {
+			PrintNice::warning(
+				fmt::format("Unrecognized action {}, recognized actions are register and install", action)
+			);
+			return 1;
 		}
+
+		if (argc < 4) {
+			// action recognized but no packages listed
+			PrintNice::warning("No vcpkg packages specified");
+			return 1;
+		}
+
+		if (actionInstall) {
+			std::string installCommand = "vcpkg install";
+			for (int i = 3; i < argc; i++) {
+				installCommand += " ";
+				installCommand += argv[i];
+			}
+
+			// install packages using vcpkg install ...packages
+			utils::system::runCommand(installCommand);
+		}
+
+		if (actionRegister || actionInstall) {
+			// register given package and all it's dependencies from vcpkg
+			for (int i = 3; i < argc; i++) {
+				PrintNice::info(fmt::format("Registering {} and it's dependencies", argv[i]));
+				Package::vcpkgRegister(argv[i]);
+			}
+		}
+		
 		return 0;
 	}
 
