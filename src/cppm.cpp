@@ -196,8 +196,8 @@ int main(int argc, const char* argv[]) {
 		if (argc == 2) {
 			// no arguments provided, initialize in current project
 			if (!isPackage) {
-				std::cerr << "Must be executed in a package directory or provided package name(s)" << std::endl;
-				return 0;
+				PrintNice::warning("Must be executed within a package directory");
+				return 1;
 			}
 
 			// initialize in current package
@@ -207,23 +207,25 @@ int main(int argc, const char* argv[]) {
 		}
 
 		// initialize for all listed packages
+		bool someGenerated = false;
 		for (int i = 2; i < argc; i++) {
 			MaybePackage pkgMaybe = Package::get(argv[i]);
 			if (std::holds_alternative<PackageNotFound>(pkgMaybe)) {
-				std::cerr << "Package " << argv[i] << " not found, skipping";
+				PrintNice::warning(fmt::format("Package {} not found, skipping", argv[i]));
 				continue;
 			}
 
 			Package& pkg = std::get<Package>(pkgMaybe);
 			if (!pkg.managed) {
-				std::cerr << "Package " << pkg.name << " is not a managed package, skipping";
+				PrintNice::warning(fmt::format("Package {} is not a managed package, skipping", pkg.name));
 				continue;
 			}
 
 			Package::generateVSC(pkg);
+			someGenerated = true;
 		}
 
-		return 0;
+		return someGenerated ? 0 : 1;
 	}
 
 	if (strcmp(command, "build") == 0) {

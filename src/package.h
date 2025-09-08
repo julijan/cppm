@@ -212,7 +212,7 @@ public:
 	static void generatePremake(const Package& pkg);
 
 	// generate VSC (Visual Studio Code) configuration for given package
-	static void generateVSC(Package& pkg);
+	static void generateVSC(const Package& pkg);
 
 	// (re)generate cmake
 	static bool generateCmake(const Package& pkg);

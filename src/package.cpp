@@ -1747,7 +1747,7 @@ MaybePackage Package::includesPath(std::filesystem::path p)
 	});
 }
 
-void Package::generateVSC(Package &pkg)
+void Package::generateVSC(const Package &pkg)
 {
 	boost::json::object root;
 	boost::json::array configurations;
@@ -1768,13 +1768,13 @@ void Package::generateVSC(Package &pkg)
 	root["configurations"] = configurations;
 	root["version"] = 4;
 
-	std::filesystem::path vscDir = std::filesystem::path(pkg.path).append(".vscode");
+	std::filesystem::path vscDir = Package::getPath<1>(pkg, { ".vscode" });
 
 	if (!std::filesystem::exists(vscDir)) {
 		std::filesystem::create_directory(vscDir);
 	}
 
-	std::filesystem::path configPath = std::filesystem::path(vscDir).append("c_cpp_properties.json");
+	std::filesystem::path configPath = utils::fs::extendPath<1>(vscDir, { "c_cpp_properties.json" });
 
 	utils::json::write(configPath, root);
 
