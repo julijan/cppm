@@ -1743,7 +1743,7 @@ MaybePackage Package::includesPath(std::filesystem::path p)
 {
 	const std::string pathString = p.string();
 	return Package::find([&pathString](Package& pkg) {
-		return pathString.starts_with(pkg.path);
+		return pathString == pkg.path || pathString.starts_with(pkg.path + "/");
 	});
 }
 
