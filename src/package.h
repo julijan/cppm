@@ -214,6 +214,13 @@ public:
 	// generate VSC (Visual Studio Code) configuration for given package
 	static void generateVSC(const Package& pkg);
 
+	// generate VSC configuration that allows debugging (launch.json and tasks.json)
+	// args used as configuration.args - command line arguments passed dueing debug
+	static void generateVSCDebugConf(const Package& pkg, std::vector<std::string>& args);
+
+	// returns true if directory projectDir/.vscode exists
+	static bool usesVSC(const Package& pkg);
+
 	// (re)generate cmake
 	static bool generateCmake(const Package& pkg);
 

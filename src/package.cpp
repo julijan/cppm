@@ -1768,17 +1768,113 @@ void Package::generateVSC(const Package &pkg)
 	root["configurations"] = configurations;
 	root["version"] = 4;
 
-	std::filesystem::path vscDir = Package::getPath<1>(pkg, { ".vscode" });
-
-	if (!std::filesystem::exists(vscDir)) {
+	if (!Package::usesVSC(pkg)) {
+		std::filesystem::path vscDir = Package::getPath<1>(pkg, { ".vscode" });
 		std::filesystem::create_directory(vscDir);
 	}
 
-	std::filesystem::path configPath = utils::fs::extendPath<1>(vscDir, { "c_cpp_properties.json" });
+	std::filesystem::path configPath = Package::getPath<2>(pkg, { ".vscode", "c_cpp_properties.json" });
 
 	utils::json::write(configPath, root);
 
 	PrintNice::success(fmt::format("Generated VSC configuration in {}", configPath.string()));
+}
+
+void Package::generateVSCDebugConf(const Package &pkg, std::vector<std::string> &args)
+{
+	// tasks.json
+	boost::json::object tasksRoot;
+	boost::json::array tasks;
+	boost::json::object taskBuild;
+	boost::json::object taskBuildOptions;
+	boost::json::object taskBuildGroup;
+
+	taskBuildOptions["cwd"] = "${workspaceFolder}";
+
+	taskBuildGroup["kind"] = "build";
+	taskBuildGroup["isDefault"] = true;
+
+	taskBuild["type"] = "shell";
+	taskBuild["label"] = "Build with cppm";
+	taskBuild["command"] = "cppm build";
+	taskBuild["options"] = taskBuildOptions;
+	taskBuild["group"] = taskBuildGroup;
+
+	tasks.push_back(taskBuild);
+
+	tasksRoot["version"] = "2.0.0";
+	tasksRoot["tasks"] = tasks;
+
+	// launch.json
+	boost::json::object launchRoot;
+	boost::json::array launchConfigurations;
+	boost::json::object launchConfiguration;
+	boost::json::object prettyPrint;
+	boost::json::array launchArgs;
+	boost::json::array envVars; // in the future this could be configured by the user
+	boost::json::object envPath;
+	boost::json::array setupCommands;
+
+
+	// fill args array
+	for (std::string arg: args) {
+		launchArgs.push_back(arg.c_str());
+	}
+
+	envPath["name"] = "PATH";
+	envPath["value"] = "${env:PATH}";
+	envVars.push_back(envPath);
+
+	prettyPrint["description"] = "Enable pretty-printing for gdb";
+	prettyPrint["text"] = "-enable-pretty-printing";
+	prettyPrint["ignoreFailures"] = true;
+	setupCommands.push_back(prettyPrint);
+	
+	launchConfiguration["name"] = "Debug";
+	launchConfiguration["type"] = "cppdbg";
+	launchConfiguration["request"] = "launch";
+	launchConfiguration["program"] = "${workspaceFolder}/bin/Debug/" + pkg.name;
+	launchConfiguration["args"] = launchArgs;
+	launchConfiguration["stopAtEntry"] = false;
+	launchConfiguration["cwd"] = "${workspaceFolder}";
+	launchConfiguration["environment"] = envVars;
+	launchConfiguration["MIMode"] = "gdb";
+	launchConfiguration["miDebuggerPath"] = "/usr/bin/gdb";
+	launchConfiguration["setupCommands"] = setupCommands;
+	launchConfiguration["preLaunchTask"] = "Build with cppm";
+
+	launchConfigurations.push_back(launchConfiguration);
+
+	launchRoot["version"] = "2.0.0";
+	launchRoot["configurations"] = launchConfigurations;
+
+	// create .vscode directory if needed
+	if (!Package::usesVSC(pkg)) {
+		std::filesystem::path vscDir = Package::getPath<1>(pkg, { ".vscode" });
+		std::filesystem::create_directory(vscDir);
+	}
+
+	std::filesystem::path pathTasks = Package::getPath<2>(pkg, { ".vscode", "tasks.json" });
+	std::filesystem::path pathLaunch = Package::getPath<2>(pkg, { ".vscode", "launch.json" });
+
+	utils::json::write(pathTasks, tasksRoot);
+	utils::json::write(pathLaunch, launchRoot);
+
+	PrintNice::success("VSC debug configuration generated, you can launch you app in debug mode from \"Run and Debug\" (Ctrl+Shift+D)");
+	PrintNice::print("Add breakpoints in VSC and run the debugger. If the debugger does not run, add following to .vscode/settings.json:");
+	PrintNice::print(R"(
+"terminal.integrated.automationProfile.linux": {
+    "path": "/bin/bash",
+    "args": ["-i"]
+})", OutputType::Normal, TextStyle::Italic);
+
+	PrintNice::info("To configure debugger to start with a different set of arguments, re run this command with new argument list");
+}
+
+bool Package::usesVSC(const Package &pkg)
+{
+	std::filesystem::path vscDir = Package::getPath<1>(pkg, { ".vscode" });
+	return std::filesystem::exists(vscDir);
 }
 
 MaybePackage Package::inPath(std::filesystem::path p)

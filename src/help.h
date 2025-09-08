@@ -193,12 +193,26 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 	{
 		.command = "vsc",
 		.alias = "",
-		.description = "Generates configuration for Visual Studio Code for given package(s) making it aware of the used dependencies.",
+		.description = "Generates configuration for Visual Studio Code for given package(s) making it aware of the used dependencies. If used with --debug flag, it will generate configuration for debugging your code within VSC. For example cppm vsc --debug a b, will generate configuration which starts your app in debug mode passing a and b as command line arguments to it.",
 		.descriptionShort = "Generates configuration for Visual Studio Code",
 		.arguments = {
 			{
 				.name = "packageName",
 				.description = "Package name(s) to generate configuration for. Required, unless in a managed package directory in which case current package is assumed",
+				.required = false,
+				.list = true,
+				.literal = false
+			},
+			{
+				.name = "--debug",
+				.description = "Generate debug configuration for VSC, you can follow it up with arguments that will be passed to your app.",
+				.required = false,
+				.list = false,
+				.literal = true
+			},
+			{
+				.name = "debugArgs",
+				.description = "List of arguments passed to your application when you run it through VSC debugger. Only applicable with --debug flag.",
 				.required = false,
 				.list = true,
 				.literal = false

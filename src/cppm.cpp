@@ -206,6 +206,30 @@ int main(int argc, const char* argv[]) {
 			return 0;
 		}
 
+		if (strcmp(argv[2], "--debug") == 0) {
+			// generate VSC debug conf
+			if (!isPackage) {
+				PrintNice::warning("vsc with --debug flag can only be executed within a package directory");
+				return 1;
+			}
+
+			const Package pkg = std::get<Package>(package);
+
+			if (!pkg.managed) {
+				PrintNice::warning("vsc with --debug flag can only be executed within a managed package");
+				return 1;
+			}
+
+			// use remaining args as args passed during debug
+			std::vector<std::string> args;
+			for (int i = 3; i < argc; i++) {
+				args.push_back(argv[i]);
+			}
+
+			Package::generateVSCDebugConf(pkg, args);
+			return 0;
+		}
+
 		// initialize for all listed packages
 		bool someGenerated = false;
 		for (int i = 2; i < argc; i++) {
