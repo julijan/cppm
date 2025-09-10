@@ -1704,6 +1704,7 @@ void Package::generatePremake(const Package &pkg)
 		fstream << "\ttargetdir \"./tests/bin\"" << std::endl;
 		fstream << "\tfiles { \"./tests/" << testName << ".cpp\" }" << std::endl; // variable
 		fstream << "\tincludedirs { \"./src\", \"./src/**\", \"./includes/**\" }" << std::endl;
+		fstream << "\tlibdirs { \"./includes/lib/**\" }" << std::endl;
 	
 		if (Package::isLibrary(pkg)) {
 			// link package itself to test, if pkg is a library
