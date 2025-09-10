@@ -1708,7 +1708,7 @@ void Package::generatePremake(const Package &pkg)
 		if (Package::isLibrary(pkg)) {
 			// link package itself to test, if pkg is a library
 			fstream << "\tlinks {" << std::endl;
-			fstream << "\t\t\"" << pkg.name << "\"\n";
+			fstream << "\t\t\"" << pkg.name << "\"" << (pkg.dependencies.size() > 0 ? "," : "") << '\n';
 
 			// link libraries
 			if (pkg.dependencies.size() > 0) {
