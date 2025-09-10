@@ -230,7 +230,7 @@ public:
 	static std::string linkableObject(const std::filesystem::path& p);
 
 	// build given package
-	static bool build(const Package& pkg, const char* target = nullptr);
+	static bool build(const Package& pkg, BuildConfig conf, const char* target = nullptr);
 
 	// verify package integrity
 	// non-managed: must exist on the filesystem

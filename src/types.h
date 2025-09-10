@@ -34,3 +34,8 @@ using Empty = const char*;
 
 template <typename T>
 using Maybe = std::variant<T, Empty>;
+
+enum BuildConfig {
+	Debug,
+	Release
+};

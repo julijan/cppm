@@ -309,7 +309,7 @@ bool Package::testRun(const Package& pkg, const char* const name)
 	const std::filesystem::path testBin = utils::fs::extendPath<1>(binariesPath, { binaryName.c_str() });
 	if (!std::filesystem::exists(testBin)) {
 		// build test binary
-		if (!Package::build(pkg, binaryName.c_str())) {
+		if (!Package::build(pkg, BuildConfig::Debug, binaryName.c_str())) {
 			PrintNice::error(fmt::format("Compiling test {} failed", name), ErrorSeverity::Low);
 			return false;
 		}
@@ -1362,20 +1362,51 @@ std::string Package::linkableObject(const std::filesystem::path &p)
 	return fileName.substr(0, fileName.length() - 2);
 }
 
-bool Package::build(const Package &pkg, const char* target)
+bool Package::build(const Package &pkg, BuildConfig conf, const char* target)
 {
 	if (!Package::generateCmake(pkg)) {
 		return false;
 	}
 
 	// build
-	PrintNice::print("Compiling...", OutputType::Info);
-	std::string command = "cd " + pkg.path + " && make";
+	std::string command =
+		"cd " + pkg.path + " && " +
+		"make config=" + (conf == BuildConfig::Debug ? "debug" : "release");
+
 	if (target != nullptr) {
 		command += ' ';
 		command += target;
+	} else {
+		if (conf == BuildConfig::Release) {
+			// don't build tests in release mode
+			command += ' ';
+			command += pkg.name;
+		}
 	}
-	return utils::system::runCommand(command) == 0;
+
+	bool success = utils::system::runCommand(command) == 0;
+
+	if (success) {
+		if (conf == BuildConfig::Debug) {
+			PrintNice::success(fmt::format("✓ Successfully built debug binaries for {}", pkg.name));
+			auto path = Package::getPath<3>(pkg, { "bin", "Debug", pkg.name.c_str() });
+			PrintNice::print(
+				path.c_str(),
+				OutputType::Normal,
+				TextStyle::Italic
+			);
+		} else {
+			PrintNice::success(fmt::format("✓ Successfully built release binary for {}", pkg.name));
+			auto path = Package::getPath<3>(pkg, { "bin", "Release", pkg.name.c_str() });
+			PrintNice::print(
+				path.c_str(),
+				OutputType::Normal,
+				TextStyle::Italic
+			);
+		}
+	}
+
+	return success;
 }
 
 bool Package::check(const Package &pkg, bool strict)

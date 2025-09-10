@@ -289,8 +289,20 @@ int main(int argc, const char* argv[]) {
 
 	if (strcmp(command, "build") == 0) {
 		// build package(s)
-		if (argc == 2) {
-			// no arguments provided, build current package
+
+		BuildConfig buildConf = BuildConfig::Debug;
+		int pkgListStart = 2;
+		if (argc > 2 && strcmp(argv[2], "--release") == 0) {
+			// build release
+			buildConf = BuildConfig::Release;
+			pkgListStart++;
+		}
+
+		std::vector<std::string> packageList;
+
+		if (argc == pkgListStart) {
+			// package list not provided
+			// assume current package
 			if (!isPackage) {
 				PrintNice::warning(
 					"Command build has be executed within a package, or provided a list of package names to build"
@@ -298,20 +310,28 @@ int main(int argc, const char* argv[]) {
 				return 1;
 			}
 
-			const Package& pkg = std::get<Package>(package);
-			return Package::build(pkg) ? 0 : 1;
+			packageList.push_back(currentPackageName);
+		} else {
+			// include listed packages
+			for (int i = pkgListStart; i < argc; i++) {
+				packageList.push_back(argv[i]);
+			}
 		}
 
 		bool someFailed = false;
-		for (int i = 2; i < argc; i++) {
-			MaybePackage pkgMaybe = Package::get(argv[i]);
+		for (std::string& packageName: packageList) {
+			MaybePackage pkgMaybe = Package::get(packageName.c_str());
 			if (std::holds_alternative<PackageNotFound>(pkgMaybe)) {
-				PrintNice::warning(fmt::format("Package {} not found, skipped", argv[i]));
+				PrintNice::warning(fmt::format("Package {} not found, skipped", packageName));
 				continue;
 			}
 
 			const Package& pkg = std::get<Package>(pkgMaybe);
-			if (!Package::build(pkg)) {
+			if (!Package::build(pkg, buildConf)) {
+				PrintNice::error(
+					fmt::format("Error building package {}", packageName),
+					ErrorSeverity::Low
+				);
 				someFailed = true;
 			}
 		}

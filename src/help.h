@@ -132,6 +132,28 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 		}
 	},
 	{
+		.command = "build",
+		.alias = "",
+		.description = "Compile package. Binaries are generated in /bin/Debug and /bin/Release. Release binaries are smaller and more performant, but do not include safeguards provided by debug binaries. By default debug binaries are built, to build release binaries use --release flag.",
+		.descriptionShort = "Compile package",
+		.arguments = {
+			{
+				.name = "--release",
+				.description = "If the --release flag is used, optimized release binaries are compiled",
+				.required = false,
+				.list = false,
+				.literal = true
+			},
+			{
+				.name = "packageName",
+				.description = "Package name(s) to compile. Required, unless in a managed package directory in which case current package is assumed",
+				.required = false,
+				.list = true,
+				.literal = false
+			}
+		}
+	},
+	{
 		.command = "vcpkg",
 		.alias = "",
 		.description = "Register or install+register a package from vcpkg repository, registerering all it's dependencies in the process. If you already have a vcpkg package installed use action register, otherwise use action install, it will first install the package using vcpkg, then register it.",
@@ -220,21 +242,6 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 			{
 				.name = "debugArgs",
 				.description = "List of arguments passed to your application when you run it through VSC debugger. Only applicable with --debug flag.",
-				.required = false,
-				.list = true,
-				.literal = false
-			}
-		}
-	},
-	{
-		.command = "build",
-		.alias = "",
-		.description = "Compile package. Binaries are generated in /bin/Debug and /bin/Release. Release binaries are smaller and more performant, but do not include safeguards provided by debug binaries.",
-		.descriptionShort = "Compile package",
-		.arguments = {
-			{
-				.name = "packageName",
-				.description = "Package name(s) to compile. Required, unless in a managed package directory in which case current package is assumed",
 				.required = false,
 				.list = true,
 				.literal = false
