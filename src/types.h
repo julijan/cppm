@@ -30,6 +30,11 @@ struct PackageData {
 	int registeredAt;
 };
 
+struct DependencyTarget {
+	std::filesystem::path from;
+	std::filesystem::path to;
+};
+
 template <typename T, unsigned int S>
 using SmartArray = std::array<T, S>;
 

@@ -178,14 +178,19 @@ public:
 	static void unlinkDependency(const Package& pkg, const char* depName);
 
 	// given the dependency package
-	// returns path that should be linked in includes/src directory of the dependent
-	// it dependes on whether the dependency is managed
-	static std::filesystem::path dependencyTargetIncludes(const Package& dep);
+	// returns vector of paths that should be linked in includes/src directory of the dependent
+	// it dependes on whether the dependency is managed/composed
+	static std::vector<std::filesystem::path> dependencyTargetsIncludes(const Package& dep);
 
 	// given the dependency package
 	// returns path that should be linked in includes/lib directory of the dependent
 	// it dependes on whether the dependency is managed
-	static std::filesystem::path dependencyTargetLib(const Package& dep);
+	static std::vector<std::filesystem::path> dependencyTargetsLib(const Package& dep);
+
+	// given a package and it's dependency, produces a vector of DependencyTarget where
+	// target.from = directory within the dependency
+	// target.to = directory within package/includes
+	static std::vector<DependencyTarget> dependencyTargets(const Package& pkg, const Package& dep);
 
 	// check if depName is a dependency of pkg
 	static bool isDependency(const Package&pkg, const char* const depName);

@@ -1024,17 +1024,6 @@ void Package::addDependency(Package &pkg, Package &dep)
 		Package::generatePremake(pkg);
 	}
 
-	// no longer needed
-	// linkDependencies will link all transient dependencies in includes
-	// so they no longer need to be a direct dependency
-	// if (pkg.managed && !dep.managed) {
-	// 	// adding a non-managed dependency to a managed package
-	// 	// all transient dependencies must be added too
-	// 	for (std::string& transient: dep.dependencies) {
-	// 		Package::addDependency(pkg, transient.c_str());
-	// 	}
-	// }
-
 	PrintNice::success(fmt::format("{} added as a dependecy of {}", dep.name, pkg.name));
 }
 
@@ -1095,21 +1084,31 @@ void Package::linkDependency(const Package &pkg, const Package &dep)
 	// remove existing symlinks if they exist
 	Package::unlinkDependency(pkg, dep);
 
-	// create symbolic link in /includes/src, used by includedirs
-	const std::filesystem::path includesSymlinkPath = Package::getPath<3>(
-		pkg, { "includes", "src", dep.name.c_str() }
-	);
-	std::filesystem::path includesSymlinkTarget = Package::dependencyTargetIncludes(dep);
+	if (dep.type == PackageType::Composed) {
+		// dependency is a composed package, make sure there is:
+		// packageDir/includes/src/dep.name and
+		// packageDir/includes/lib/dep.name
+		std::filesystem::path composedIncludes = Package::getPath<3>(
+			pkg, { "includes", "src", dep.name.c_str() }
+		);
+		std::filesystem::path composedLibs = Package::getPath<3>(
+			pkg, { "includes", "lib", dep.name.c_str() }
+		);
 
-	std::filesystem::create_directory_symlink(includesSymlinkTarget, includesSymlinkPath);
+		if (!std::filesystem::exists(composedIncludes)) {
+			std::filesystem::create_directory(composedIncludes);
+		}
 
-	// create symbolic link in /includes/lib, used by libdirs
-	std::filesystem::path libsSymlinkPath = Package::getPath<3>(
-		pkg, { "includes", "lib", dep.name.c_str() }
-	);
-	std::filesystem::path libsSymlinkTarget = Package::dependencyTargetLib(dep);
+		if (!std::filesystem::exists(composedLibs)) {
+			std::filesystem::create_directory(composedLibs);
+		}
+	}
 
-	std::filesystem::create_directory_symlink(libsSymlinkTarget, libsSymlinkPath);
+	std::vector<DependencyTarget> targets = Package::dependencyTargets(pkg, dep);
+
+	for (DependencyTarget& target: targets) {
+		std::filesystem::create_directory_symlink(target.from, target.to);
+	}
 
 	// link transient dependencies recursively
 	if (dep.dependencies.size() > 0) {
@@ -1139,27 +1138,30 @@ void Package::linkDependencies(const Package &pkg)
 
 void Package::unlinkDependency(const Package &pkg, const Package &dep)
 {
-	Package::unlinkDependency(pkg, dep.name.c_str());
-}
+	std::vector<DependencyTarget> targets = Package::dependencyTargets(pkg, dep);
 
-void Package::unlinkDependency(const Package &pkg, const char *depName)
-{
-	MaybePackage depMaybe = Package::get(depName);
-
-	if (std::holds_alternative<PackageNotFound>(depMaybe)) {
-		PrintNice::warning(fmt::format("Attempted to unlink a non-existent dependency {}", depName));
-		return;
+	for (DependencyTarget& target: targets) {
+		if (std::filesystem::exists(target.to)) {
+			std::filesystem::remove(target.to);
+		}
 	}
+	
+	if (dep.type == PackageType::Composed) {
+		// remove no longer needed composed include dirs
+		std::filesystem::path composedIncludes = Package::getPath<3>(
+			pkg, { "includes", "src", dep.name.c_str() }
+		);
+		std::filesystem::path composedLibs = Package::getPath<3>(
+			pkg, { "includes", "lib", dep.name.c_str() }
+		);
 
-	Package dep = std::get<Package>(depMaybe);
+		if (std::filesystem::exists(composedIncludes)) {
+			std::filesystem::remove(composedIncludes);
+		}
 
-	const auto srcLink = Package::getPath<3>(pkg, { "includes", "src", depName });
-	const auto libLink = Package::getPath<3>(pkg, { "includes", "lib", depName });
-	if (std::filesystem::exists(srcLink)) {
-		std::filesystem::remove(srcLink);
-	}
-	if (std::filesystem::exists(libLink)) {
-		std::filesystem::remove(libLink);
+		if (std::filesystem::exists(composedLibs)) {
+			std::filesystem::remove(composedLibs);
+		}
 	}
 
 	// unlink transient dependencies recursively
@@ -1178,28 +1180,121 @@ void Package::unlinkDependency(const Package &pkg, const char *depName)
 	}
 }
 
-std::filesystem::path Package::dependencyTargetIncludes(const Package &dep)
+void Package::unlinkDependency(const Package &pkg, const char *depName)
 {
-	std::filesystem::path pkgPath(Package::getPath(dep));
-	if (dep.managed) {
-		// use package's src dir
-		return utils::fs::extendPath<1>(pkgPath, { "src" });
+	MaybePackage depMaybe = Package::get(depName);
+
+	if (std::holds_alternative<PackageNotFound>(depMaybe)) {
+		PrintNice::warning(fmt::format("Attempted to unlink a non-existent dependency {}", depName));
+		return;
 	}
 
-	// we don't know anything about non managed packages, so we always link entire package dir
-	return pkgPath;
+	Package::unlinkDependency(pkg, std::get<Package>(depMaybe));
 }
 
-std::filesystem::path Package::dependencyTargetLib(const Package &dep)
+std::vector<std::filesystem::path> Package::dependencyTargetsIncludes(const Package &dep)
 {
 	std::filesystem::path pkgPath(Package::getPath(dep));
+
+	std::vector<std::filesystem::path> paths;
+
+	if (dep.type == PackageType::Composed) {
+		// dependency is a composed package, include dep.includeDirs
+		for (const std::string& includePathString: dep.includeDirs) {
+			paths.push_back(includePathString);
+		}
+		return paths;
+	}
+
 	if (dep.managed) {
-		// use package's bin dir
-		return utils::fs::extendPath<1>(pkgPath, { "bin" });
+		// use package's src dir
+		paths.push_back(utils::fs::extendPath<1>(pkgPath, { "src" }));
+		return paths;
 	}
 
 	// we don't know anything about non managed packages, so we always link entire package dir
-	return pkgPath;
+	paths.push_back(pkgPath);
+	return paths;
+}
+
+std::vector<std::filesystem::path> Package::dependencyTargetsLib(const Package &dep)
+{
+	std::vector<std::filesystem::path> paths;
+	std::filesystem::path pkgPath(Package::getPath(dep));
+
+	if (dep.type == PackageType::Composed) {
+		// dependency is a composed package, include dep.libDirs
+		for (const std::string& includePathString: dep.libDirs) {
+			paths.push_back(includePathString);
+		}
+		return paths;
+	}
+
+	if (dep.managed) {
+		// use package's bin dir
+		paths.push_back(utils::fs::extendPath<1>(pkgPath, { "bin" }));
+		return paths;
+	}
+
+	// we don't know anything about non managed packages, so we always link entire package dir
+	paths.push_back(pkgPath);
+	return paths;
+}
+
+std::vector<DependencyTarget> Package::dependencyTargets(const Package& pkg, const Package& dep)
+{
+	std::vector<DependencyTarget> targets;
+
+	if (pkg.managed == false) {
+		// we don't manage dependencies of non-managed packages
+		return targets;
+	}
+
+	std::filesystem::path pkgPath = Package::getPath(pkg);
+
+	std::vector<std::filesystem::path> targetsInclude = Package::dependencyTargetsIncludes(dep);
+	std::vector<std::filesystem::path> targetsLib = Package::dependencyTargetsLib(dep);
+
+	if (dep.type == PackageType::Composed) {
+		// composed dependencies treated differently
+		// they might have multiple include/lib dirs
+		// so their "to" destination is grouped in a directory dep.name
+
+		for (std::filesystem::path& path: targetsInclude) {
+			DependencyTarget target;
+			target.from = path;
+			target.to = utils::fs::extendPath<4>(pkgPath, { "includes", "src", dep.name.c_str(), path.filename().c_str() });
+			targets.push_back(target);
+		}
+
+		for (std::filesystem::path& path: targetsLib) {
+			DependencyTarget target;
+			target.from = path;
+			target.to = utils::fs::extendPath<4>(pkgPath, { "includes", "lib", dep.name.c_str(), path.filename().c_str() });
+			targets.push_back(target);
+		}
+
+		return targets;
+	}
+
+	// non-composed packages, whether managed or non-managed, behave the same
+	// while at the moment they always have a single include/lib dir
+	// we still loop as that might change in the future
+	for (std::filesystem::path& path: targetsInclude) {
+		DependencyTarget target;
+		target.from = path;
+		target.to = utils::fs::extendPath<3>(pkgPath, { "includes", "src", dep.name.c_str() });
+		targets.push_back(target);
+	}
+
+	for (std::filesystem::path& path: targetsLib) {
+		DependencyTarget target;
+		target.from = path;
+		target.to = utils::fs::extendPath<3>(pkgPath, { "includes", "lib", dep.name.c_str() });
+		targets.push_back(target);
+	}
+
+	return targets;
 }
 
 bool Package::isDependency(const Package &pkg, const char *const depName)
@@ -1293,19 +1388,16 @@ void Package::materializeDependencies(const Package &pkg)
 		// materialize dependency before copying contents
 		Package::materializeDependencies(dep);
 
-		// copy contents of the dependency to includes
-		const std::filesystem::path depSrc = Package::dependencyTargetIncludes(dep);
-		const std::filesystem::path depLib = Package::dependencyTargetLib(dep);
-		std::filesystem::copy(
-			depSrc,
-			utils::fs::extendPath<1>(includesSrc, { depName.c_str() }),
-			std::filesystem::copy_options::recursive
-		);
-		std::filesystem::copy(
-			depLib,
-			utils::fs::extendPath<1>(includesLib, { depName.c_str() }),
-			std::filesystem::copy_options::recursive
-		);
+		// copy materialized contents of the dependency to includes
+		std::vector<DependencyTarget> targets = Package::dependencyTargets(pkg, dep);
+
+		for (DependencyTarget& target: targets) {
+			std::filesystem::copy(
+				target.from,
+				target.to,
+				std::filesystem::copy_options::recursive
+			);
+		}
 
 		// un-materialize dependency
 		Package::unmaterializeDependencies(dep);
@@ -2083,6 +2175,7 @@ std::string Package::typeToString(PackageType t) {
 		case PackageType::WindowedApp: return "WindowedApp";
 		case PackageType::StaticLib: return "StaticLib";
 		case PackageType::SharedLib: return "SharedLib";
+		case PackageType::Composed: return "Composed";
 	}
 	return "";
 }
@@ -2326,6 +2419,9 @@ PackageType Package::typeFromString(const char *const t)
 	}
 	if (strcmp(t, "SharedLib") == 0) {
 		return PackageType::SharedLib;
+	}
+	if (strcmp(t, "Composed") == 0) {
+		return PackageType::Composed;
 	}
 
 	return PackageType::ConsoleApp;
