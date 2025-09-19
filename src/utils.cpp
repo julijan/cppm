@@ -240,6 +240,35 @@ namespace utils {
 
 			return parser.release();
 		}
+
+		std::vector<std::string> fromJSONArray(const boost::json::array& arr)
+		{
+			std::vector<std::string> vec;
+			for (const boost::json::value& item: arr) {
+				vec.push_back(item.as_string().c_str());
+			}
+			return vec;
+		}
+
+		std::vector<std::string> extractArrayFromJSONObject(const boost::json::object& obj, const char* key)
+		{
+			if (!obj.contains(key)) {
+				// key does not exist, return empty vector
+				return std::vector<std::string>();
+			}
+
+			// key exists, assume it is a boost::json::array and return a vector from it
+			return utils::json::fromJSONArray(obj.at(key).as_array());
+		}
+
+		boost::json::array toJSONArray(const std::vector<std::string>& arr)
+		{
+			boost::json::array arrJSON;
+			for (const std::string& item: arr) {
+				arrJSON.push_back(item.c_str());
+			}
+			return arrJSON;
+		}
 	}
 
 	namespace time {
