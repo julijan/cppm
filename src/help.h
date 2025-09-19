@@ -131,6 +131,67 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 			}
 		}
 	},
+
+	{
+		.command = "compose",
+		.alias = "",
+		.description = "When a package is contained in a single directory, you can use the register command. Sometimes this is not the case and includes/libs are scattered on the filesystem, in such cases you can use compose to compose a package, providing paths to include/lib directories and the name of objects you want to have linked to dependents of the composed package.",
+		.descriptionShort = "Create a custom package",
+		.arguments = {
+			{
+				.name = "packageName",
+				.description = "Name of the custom package",
+				.required = true,
+				.list = false,
+				.literal = false
+			},
+			{
+				.name = "--includes",
+				.description = "Everything that follows is treated as a path to an includes directory",
+				.required = true,
+				.list = false,
+				.literal = true
+			},
+			{
+				.name = "includeDir",
+				.description = "List of directories included in dependent packages",
+				.required = true,
+				.list = true,
+				.literal = false
+			},
+
+			{
+				.name = "--libs",
+				.description = "Everything that follows is treated as a path to libs directory",
+				.required = false,
+				.list = false,
+				.literal = true
+			},
+			{
+				.name = "libDir",
+				.description = "List of directories searched for linkable objects in dependent packages. At least one path must follow --libs",
+				.required = true,
+				.list = true,
+				.literal = false
+			},
+
+			{
+				.name = "--links",
+				.description = "Everything that follows is treated as a lib name that will be linked to dependent packages",
+				.required = false,
+				.list = false,
+				.literal = true
+			},
+			{
+				.name = "linkName",
+				.description = "List of lib names linked to dependent packages. At least one path must follow --links",
+				.required = true,
+				.list = true,
+				.literal = false
+			}
+		}
+	},
+
 	{
 		.command = "build",
 		.alias = "",
