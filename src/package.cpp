@@ -1145,7 +1145,7 @@ void Package::unlinkDependency(const Package &pkg, const Package &dep)
 			std::filesystem::remove(target.to);
 		}
 	}
-	
+
 	if (dep.type == PackageType::Composed) {
 		// remove no longer needed composed include dirs
 		std::filesystem::path composedIncludes = Package::getPath<3>(
@@ -2355,21 +2355,80 @@ void Package::display(const Package& pkg)
 			0
 		} << "\n" <<
 
-		"  Path: " <<
+		StreamOut();
+
+	if (pkg.type == PackageType::Composed) {
+		// composed packages don't have a single path
+		// show includes/lib paths
+		
+		// includeDirs
+		stream << " 📁 Includes:\n";
+
+		for (const std::string& path: pkg.includeDirs) {
+			stream << "  |-" <<
+			
+			TextStyledToken{
+				path.c_str(),
+				OutputType::Info,
+				0
+			}
+
+			<< "\n";
+		}
+
+		stream << StreamOut();
+
+		// libDirs
+		stream << " 📁 Libs:\n";
+
+		for (const std::string& path: pkg.libDirs) {
+			stream << "  |-" <<
+			
+			TextStyledToken{
+				path.c_str(),
+				OutputType::Info,
+				0
+			}
+
+			<< "\n";
+		}
+
+		stream << StreamOut();
+
+		// links
+		stream << " 🔗 Links:\n";
+
+		for (const std::string& path: pkg.linkableObjects) {
+			stream << "  |-" <<
+			
+			TextStyledToken{
+				path.c_str(),
+				OutputType::Info,
+				0
+			}
+
+			<< "\n";
+		}
+
+		stream << StreamOut();
+
+	} else {
+		stream << "  Path: " <<
 		
 		TextStyledToken{
 			pkg.path.c_str(),
 			OutputType::Info,
 			0
-		} <<
-
-		StreamOut();
+		} << StreamOut();
+	}
 		
 	PrintNice::print();
 	
-	Package::listDependencies(pkg);
-
-	PrintNice::print();
+	if (pkg.managed) {
+		Package::listDependencies(pkg);
+	
+		PrintNice::print();
+	}
 
 	Package::listDependents(pkg);
 
