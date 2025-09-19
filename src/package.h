@@ -34,6 +34,8 @@ public:
 		std::string path,
 		PackageType type,
 		std::string version,
+		std::vector<std::string> includeDirs,
+		std::vector<std::string> libDirs,
 		std::vector<std::string> linkableObjects,
 		std::vector<std::string> dependencies,
 		std::vector<std::string> tests,

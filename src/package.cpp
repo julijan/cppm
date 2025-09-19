@@ -23,7 +23,8 @@ Package::Package(std::string name, std::string path, PackageType type, bool mana
 	this->type = type;
 	this->managed = managed;
 	this->registeredAt = utils::time::unixTimestamp();
-	this->linkableObjects = std::vector<std::string>();
+	this->includeDirs = std::vector<std::string>();
+	this->libDirs = std::vector<std::string>();
 	this->linkableObjects = std::vector<std::string>();
 	this->tests = std::vector<std::string>();
 }
@@ -33,6 +34,8 @@ Package::Package(
 	std::string path,
 	PackageType type,
 	std::string version,
+	std::vector<std::string> includeDirs,
+	std::vector<std::string> libDirs,
 	std::vector<std::string> linkableObjects,
 	std::vector<std::string> dependencies,
 	std::vector<std::string> tests,
@@ -43,6 +46,8 @@ Package::Package(
 	this->path = path;
 	this->type = type;
 	this->version = version;
+	this->includeDirs = includeDirs;
+	this->libDirs = libDirs;
 	this->linkableObjects = linkableObjects;
 	this->dependencies = dependencies;
 	this->tests = tests;
@@ -2296,35 +2301,16 @@ PackageType Package::typeFromString(const char *const t)
 
 Package Package::fromJSON(PackageJSON data)
 {
-	const auto linkableObjectsRaw = data.at("linkableObjects").as_array();
-	const auto dependenciesRaw = data.at("dependencies").as_array();
-
-	std::vector<std::string> linkableObjects;
-	std::vector<std::string> dependencies;
-	std::vector<std::string> tests;
-
-	for (auto val: linkableObjectsRaw) {
-		linkableObjects.push_back(std::string(val.as_string()));
-	}
-
-	for (auto val: dependenciesRaw) {
-		dependencies.push_back(std::string(val.as_string()));
-	}
-
-	if (data.contains("tests")) {
-		for (auto val: data.at("tests").as_array()) {
-			tests.push_back(std::string(val.as_string()));
-		}
-	}
-
 	return Package(
 		data.at("name").as_string().c_str(),
 		data.at("path").as_string().c_str(),
 		Package::typeFromString(data.at("type").as_string().c_str()),
 		data.at("version").as_string().c_str(),
-		linkableObjects,
-		dependencies,
-		tests,
+		utils::json::extractArrayFromJSONObject(data, "includeDirs"),
+		utils::json::extractArrayFromJSONObject(data, "libDirs"),
+		utils::json::extractArrayFromJSONObject(data, "linkableObjects"),
+		utils::json::extractArrayFromJSONObject(data, "dependencies"),
+		utils::json::extractArrayFromJSONObject(data, "tests"),
 		data.at("managed").as_bool(),
 		data.at("registeredAt").as_int64()
 	);
@@ -2332,21 +2318,6 @@ Package Package::fromJSON(PackageJSON data)
 
 PackageJSON Package::toJSON(Package &pkg)
 {
-	boost::json::array linkable;
-	for (auto item: pkg.linkableObjects) {
-		linkable.push_back(boost::json::string(item));
-	}
-
-	boost::json::array dependencies;
-	for (auto item: pkg.dependencies) {
-		dependencies.push_back(boost::json::string(item));
-	}
-
-	boost::json::array tests;
-	for (auto item: pkg.tests) {
-		tests.push_back(boost::json::string(item));
-	}
-
 	PackageJSON json;
 	json["name"] = pkg.name;
 	json["path"] = pkg.path;
@@ -2354,8 +2325,10 @@ PackageJSON Package::toJSON(Package &pkg)
 	json["version"] = pkg.version;
 	json["managed"] = pkg.managed;
 	json["registeredAt"] = pkg.registeredAt;
-	json["linkableObjects"] = linkable;
-	json["dependencies"] = dependencies;
-	json["tests"] = tests;
+	json["linkableObjects"] = utils::json::toJSONArray(pkg.linkableObjects);
+	json["includeDirs"] = utils::json::toJSONArray(pkg.includeDirs);
+	json["libDirs"] = utils::json::toJSONArray(pkg.libDirs);
+	json["dependencies"] = utils::json::toJSONArray(pkg.dependencies);
+	json["tests"] = utils::json::toJSONArray(pkg.tests);
 	return json;
 }
