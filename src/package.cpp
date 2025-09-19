@@ -1464,9 +1464,14 @@ std::set<std::string> Package::listLinkable(const Package &pkg)
 
 		for (std::string& obj: dep.linkableObjects) {
 			// direct dependency obj
-			// obj contains a full path to obj, extract name using Package::linkableObject
-			std::string objName = Package::linkableObject(std::filesystem::path(obj));
-			linkable.insert(objName);
+			if (dep.type == PackageType::Composed) {
+				// use raw link for composed package dependencies
+				linkable.insert(obj);
+			} else {
+				// obj contains a full path to obj, extract name using Package::linkableObject
+				std::string objName = Package::linkableObject(std::filesystem::path(obj));
+				linkable.insert(objName);
+			}
 		}
 		
 		// transient recursive
