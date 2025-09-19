@@ -4,3 +4,4 @@ obj
 cppm.make
 Makefile
 includes
+*.make
