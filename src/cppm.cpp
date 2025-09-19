@@ -177,6 +177,53 @@ int main(int argc, const char* argv[]) {
 		return 0;
 	}
 
+	if (strcmp(command, "compose") == 0) {
+		// compose a package
+		// cppm compose [packageName] --includes /path/a /path/b --libs /path/a /path/b --links linkA linkB
+
+		if (argc < 5) {
+			// at minimum, package name and one include dir/lib dir is required
+			// cppm compose [packageName] --includes /path/a
+			PrintNice::warning("Too few arguments.");
+			return 1;
+		}
+
+		std::vector<std::string> includeDirs;
+		std::vector<std::string> libDirs;
+		std::vector<std::string> links;
+
+		const char* packageName = argv[2];
+
+		std::vector<std::string>* current = nullptr;
+		for (int i = 3; i < argc; i++) {
+			bool isIncludes = strcmp(argv[i], "--includes") == 0;
+			bool isLibs = strcmp(argv[i], "--libs") == 0;
+			bool isLinks = strcmp(argv[i], "--links") == 0;
+
+			// set current vector
+			if (isIncludes) {
+				current = &includeDirs;
+				continue;
+			} else if (isLibs) {
+				current = &libDirs;
+				continue;
+			} else if (isLinks) {
+				current = &links;
+				continue;
+			}
+			if (current == nullptr) {
+				// expected --includes, --libs or --links
+				PrintNice::error("Expected --includes, --libs or --links");
+				return 1;
+			}
+
+			current->push_back(argv[i]);
+		}
+
+		Package::composePackage(packageName, includeDirs, libDirs, links);
+		return 0;
+	}
+
 	if (strcmp(command, "vcpkg") == 0) {
 
 		if (argc == 2) {

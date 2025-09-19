@@ -89,6 +89,14 @@ public:
 	// unregisters given package
 	static void unregisterPackage(const char* const name);
 
+	// create a composed package (parts can be scattered on the filesystem)
+	static void composePackage(
+		const char* name,
+		std::vector<std::string>& includeDirs,
+		std::vector<std::string>& libDirs,
+		std::vector<std::string>& links
+	);
+
 	// find all linkable objects (.a) in path
 	static std::vector<std::filesystem::path> findLinkableObjects(const std::filesystem::path& p);
 

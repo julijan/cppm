@@ -742,6 +742,38 @@ void Package::unregisterPackage(const char *const name)
 	PrintNice::success(fmt::format("Package {} unregistered", name));
 }
 
+void Package::composePackage(const char *name, std::vector<std::string> &includeDirs, std::vector<std::string> &libDirs, std::vector<std::string> &links)
+{
+	Package pkg(
+		name,
+		"scattered",
+		PackageType::Composed,
+		"0.1.0",
+		includeDirs,
+		libDirs,
+		links,
+		std::vector<std::string>(),
+		std::vector<std::string>(),
+		false,
+		utils::time::unixTimestamp()
+	);
+	Package::addToRegistry(pkg);
+
+	PrintStream stream = PrintNice::stream();
+	stream <<
+	TextStyledToken{
+		"Composed package",
+		OutputType::Success,
+		0
+	} <<
+	TextStyledToken{
+		name,
+		OutputType::Success,
+		0
+	}
+	<< StreamOut();
+}
+
 std::vector<std::filesystem::path> Package::findLinkableObjects(const std::filesystem::path &p)
 {
 	std::vector<std::filesystem::path> linkable;
