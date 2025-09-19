@@ -717,7 +717,6 @@ void Package::unregisterPackage(const char *const name)
 
 			if (action == 'L' || action == 'l') {
 				Package::listDependents(std::get<Package>(pkg));
-				break;
 			}
 
 			if (action == 'C' || action == 'c') {
