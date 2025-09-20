@@ -1390,6 +1390,14 @@ void Package::materializeDependencies(const Package &pkg)
 		// copy materialized contents of the dependency to includes
 		std::vector<DependencyTarget> targets = Package::dependencyTargets(pkg, dep);
 
+		if (dep.type == PackageType::Composed) {
+			// composed package, create it's directories
+			std::filesystem::path depPathSrc = utils::fs::extendPath<1>(includesSrc, { dep.name.c_str() });
+			std::filesystem::path depPathLib = utils::fs::extendPath<1>(includesLib, { dep.name.c_str() });
+			std::filesystem::create_directory(depPathSrc);
+			std::filesystem::create_directory(depPathLib);
+		}
+
 		for (DependencyTarget& target: targets) {
 			std::filesystem::copy(
 				target.from,
