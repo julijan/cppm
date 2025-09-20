@@ -1699,6 +1699,29 @@ std::set<std::string> Package::listLinkable(const Package &pkg)
 		linkable.insert(objTransient.begin(), objTransient.end());
 	}
 
+	// convert uses to links using pkg-config
+	for (const std::string& use: pkg.uses) {
+		std::string command = "pkg-config --libs-only-l ";
+		command += use;
+
+		std::string result = "";
+		try {
+			result = utils::system::runCommandOutput(command);
+		} catch(std::runtime_error e) {
+			PrintNice::error("Skipped " + use);
+			continue;
+		}
+
+		std::vector<std::string> items = utils::string::split(result, " ");
+
+		for (std::string& item: items) {
+			// items are prepended with "-l"
+			std::string trimmed = utils::string::trim(item);
+			if (trimmed.size() < 3) {continue;}
+			linkable.insert(trimmed.substr(2));
+		}
+	}
+
 	return linkable;
 }
 
