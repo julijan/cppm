@@ -111,6 +111,12 @@ public:
 	// return all include dirs for given used global lib
 	static std::unordered_set<std::string> useIncludeDirs(const Package& pkg, const char* libName);
 
+	// return all lib dirs for pkg.uses
+	static std::unordered_set<std::string> useLibDirs(const Package& pkg);
+
+	// return all lib dirs for given used global lib
+	static std::unordered_set<std::string> useLibDirs(const Package& pkg, const char* libName);
+
 	// find all linkable objects (.a) in path
 	static std::vector<std::filesystem::path> findLinkableObjects(const std::filesystem::path& p);
 

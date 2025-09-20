@@ -914,6 +914,45 @@ std::unordered_set<std::string> Package::useIncludeDirs(const Package &pkg, cons
 	return dirs;
 }
 
+std::unordered_set<std::string> Package::useLibDirs(const Package &pkg)
+{
+	std::unordered_set<std::string> dirs;
+
+	for (const std::string& libName: pkg.uses) {
+		std::unordered_set<std::string> libLibDirs = Package::useLibDirs(pkg, libName.c_str());
+		dirs.insert(libLibDirs.begin(), libLibDirs.end());
+	}
+
+	return dirs;
+}
+
+std::unordered_set<std::string> Package::useLibDirs(const Package &pkg, const char *libName)
+{
+	std::unordered_set<std::string> dirs;
+	std::string command = "pkg-config --libs-only-L ";
+	command += libName;
+
+	std::string result = "";
+	try {
+		result = utils::system::runCommandOutput(command);
+	} catch(std::runtime_error e) {
+		PrintNice::error("Failed to execute pkg-config for " + std::string(libName) + ": " + e.what());
+	}
+
+	std::vector<std::string> items = utils::string::split(result, " ");
+
+	for (std::string& item: items) {
+		// item is a path prepended by "-L"
+		if (item.size() < 3) {
+			continue;
+		}
+		
+		dirs.insert(utils::string::trim(item).substr(2));
+	}
+
+	return dirs;
+}
+
 std::vector<std::filesystem::path> Package::findLinkableObjects(const std::filesystem::path &p)
 {
 	std::vector<std::filesystem::path> linkable;
@@ -1524,12 +1563,23 @@ void Package::materializeDependencies(const Package &pkg)
 		std::filesystem::path includesUsesLib = Package::getPath<4>(pkg, { "includes", "uses", "lib", usedLib.c_str() });
 		std::filesystem::create_directory(includesUsesLib);
 
-		// copy files
+		// copy includes files
 		std::unordered_set<std::string> libIncludeDirs = Package::useIncludeDirs(pkg, usedLib.c_str());
 		int counter = 0;
 		for (auto& usePath: libIncludeDirs) {
 			std::filesystem::path from = usePath;
 			std::filesystem::path to = utils::fs::extendPath<1>(includesUsesSrc, { std::to_string(counter).c_str() });
+
+			std::filesystem::copy(from, to, std::filesystem::copy_options::recursive);
+			counter++;
+		}
+
+		// copy lib files
+		std::unordered_set<std::string> libLibDirs = Package::useLibDirs(pkg, usedLib.c_str());
+		counter = 0;
+		for (auto& usePath: libLibDirs) {
+			std::filesystem::path from = usePath;
+			std::filesystem::path to = utils::fs::extendPath<1>(includesUsesLib, { std::to_string(counter).c_str() });
 
 			std::filesystem::copy(from, to, std::filesystem::copy_options::recursive);
 			counter++;
