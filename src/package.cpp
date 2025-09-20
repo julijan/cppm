@@ -1669,37 +1669,11 @@ std::vector<Package> Package::dependents(const char *const name)
 	});
 }
 
-std::set<std::string> Package::listLinkable(const Package &pkg)
+std::vector<std::string> Package::listLinkable(const Package &pkg)
 {
-	std::set<std::string> linkable;
+	std::vector<std::string> linkable;
 
-	std::vector<Package> dependencies = Package::getDependencies(pkg);
-
-	for (Package& dep: dependencies) {
-
-		if (dep.managed && Package::isLibrary(dep)) {
-			// managed library, include it's name
-			linkable.insert(dep.name);
-		}
-
-		for (std::string& obj: dep.linkableObjects) {
-			// direct dependency obj
-			if (dep.type == PackageType::Composed) {
-				// use raw link for composed package dependencies
-				linkable.insert(obj);
-			} else {
-				// obj contains a full path to obj, extract name using Package::linkableObject
-				std::string objName = Package::linkableObject(std::filesystem::path(obj));
-				linkable.insert(objName);
-			}
-		}
-		
-		// transient recursive
-		std::set<std::string> objTransient = Package::listLinkable(dep);
-		linkable.insert(objTransient.begin(), objTransient.end());
-	}
-
-	// convert uses to links using pkg-config
+	// include uses in links
 	for (const std::string& use: pkg.uses) {
 		std::string command = "pkg-config --libs-only-l ";
 		command += use;
@@ -1718,8 +1692,34 @@ std::set<std::string> Package::listLinkable(const Package &pkg)
 			// items are prepended with "-l"
 			std::string trimmed = utils::string::trim(item);
 			if (trimmed.size() < 3) {continue;}
-			linkable.insert(trimmed.substr(2));
+			linkable.push_back(trimmed.substr(2));
 		}
+	}
+
+	std::vector<Package> dependencies = Package::getDependencies(pkg);
+
+	for (Package& dep: dependencies) {
+
+		if (dep.managed && Package::isLibrary(dep)) {
+			// managed library, include it's name
+			linkable.push_back(dep.name);
+		}
+
+		for (std::string& obj: dep.linkableObjects) {
+			// direct dependency obj
+			if (dep.type == PackageType::Composed) {
+				// use raw link for composed package dependencies
+				linkable.push_back(obj);
+			} else {
+				// obj contains a full path to obj, extract name using Package::linkableObject
+				std::string objName = Package::linkableObject(std::filesystem::path(obj));
+				linkable.push_back(objName);
+			}
+		}
+		
+		// transient recursive
+		std::vector<std::string> objTransient = Package::listLinkable(dep);
+		linkable.insert(linkable.end(), objTransient.begin(), objTransient.end());
 	}
 
 	return linkable;
@@ -2084,9 +2084,18 @@ void Package::generatePremake(const Package &pkg)
 		}
 
 		fstream << "\t}" << std::endl;
+
+		fstream << "\tlinkoptions {" << std::endl;
+
+		for (int i = 0; i < pkg.uses.size(); ++i) {
+			fstream << "\t\t\"`pkg-config --libs " << pkg.uses[i] << "`\"" <<
+						(i < pkg.uses.size() - 1 ? "," : "") << std::endl;
+		}
+
+		fstream << "\t}" << std::endl;
 	}
 
-	std::set<std::string> linked = Package::listLinkable(pkg);
+	std::vector<std::string> linked = Package::listLinkable(pkg);
 
 	if (pkg.dependencies.size() > 0) {
 		// link libraries
@@ -2094,9 +2103,10 @@ void Package::generatePremake(const Package &pkg)
 			// include links in premake
 			fstream << "\tlinks {" << std::endl;
 
-			const auto last = --linked.end();
-			for (auto i = linked.begin(); i != linked.end(); ++i) {
-				fstream << "\t\t\"" << *i << '"' << (i == last ? "" : ",") << std::endl;
+			int current = 0;
+			for (const std::string& link: linked) {
+				fstream << "\t\t\"" << link << '"' << (current == linked.size() - 1 ? "" : ",") << std::endl;
+				current++;
 			}
 
 			fstream << "\t}\n" << std::endl;
@@ -2131,17 +2141,37 @@ void Package::generatePremake(const Package &pkg)
 			fstream << "\t\t\"" << pkg.name << "\"" << (pkg.dependencies.size() > 0 ? "," : "") << '\n';
 
 			// link libraries
-			if (pkg.dependencies.size() > 0) {
-				if (linked.size() > 0) {
-					const auto last = --linked.end();
-					for (auto i = linked.begin(); i != linked.end(); ++i) {
-						fstream << "\t\t\"" << *i << '"' << (i == last ? "" : ",") << std::endl;
-					}
+			if (linked.size() > 0) {
+				int current = 0;
+				for (const std::string& link: linked) {
+					fstream << "\t\t\"" << link << '"' << (current == linked.size() - 1 ? "" : ",") << std::endl;
+					current++;
 				}
 			}
 	
 			fstream << "\t}" << std::endl;
 	
+		}
+
+		if (pkg.uses.size() > 0) {
+			// uses system libraries
+			fstream << "\tbuildoptions {" << std::endl;
+
+			for (int i = 0; i < pkg.uses.size(); ++i) {
+				fstream << "\t\t\"`pkg-config --cflags " << pkg.uses[i] << "`\"" <<
+							(i < pkg.uses.size() - 1 ? "," : "") << std::endl;
+			}
+
+			fstream << "\t}" << std::endl;
+
+			fstream << "\tlinkoptions {" << std::endl;
+
+			for (int i = 0; i < pkg.uses.size(); ++i) {
+				fstream << "\t\t\"`pkg-config --libs " << pkg.uses[i] << "`\"" <<
+							(i < pkg.uses.size() - 1 ? "," : "") << std::endl;
+			}
+
+			fstream << "\t}" << std::endl;
 		}
 	
 		// filters
