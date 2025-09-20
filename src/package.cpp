@@ -773,6 +773,64 @@ void Package::composePackage(const char *name, std::vector<std::string> &include
 	<< StreamOut();
 }
 
+std::vector<std::string> Package::findLib(const char *kw)
+{
+	std::string command = "pkg-config --list-all | grep ";
+	command += kw;
+
+	PrintStream stream = PrintNice::stream();
+	stream <<
+	TextStyledToken{
+		"Running:",
+		OutputType::Info,
+		0
+	} <<
+	TextStyledToken{
+		command.c_str(),
+		OutputType::Normal,
+		TextStyle::Italic
+	} << "\n" << StreamOut();
+
+	std::string result;
+	try {
+		result = utils::system::runCommandOutput(command);
+	} catch(std::runtime_error e) {
+		PrintNice::error(e.what());
+		return std::vector<std::string>();
+	}
+
+	std::vector<std::string> lines = utils::string::split(result, "\n");
+
+	if (lines.size() < 2) {
+		PrintNice::print("No system libraries found that match given keyword", OutputType::Normal, TextStyle::Italic);
+	} else {
+		stream <<
+		TextStyledToken{
+			"Found",
+			OutputType::Info,
+			0
+		} <<
+		TextStyledToken{
+			std::to_string(lines.size() - 1).c_str(),
+			OutputType::Info,
+			TextStyle::Bold
+		} <<
+		TextStyledToken{
+			"libraries",
+			OutputType::Info,
+			0
+		}
+		<< StreamOut();
+	}
+
+	
+	for (std::string& line: lines) {
+		PrintNice::print(line);
+	}
+
+	return lines;
+}
+
 std::vector<std::filesystem::path> Package::findLinkableObjects(const std::filesystem::path &p)
 {
 	std::vector<std::filesystem::path> linkable;
@@ -2243,6 +2301,7 @@ void Package::vcpkgRegister(const char* pkgName)
 		result = utils::system::runCommandOutput(command);
 	} catch (std::runtime_error e) {
 		PrintNice::error(e.what(), ErrorSeverity::Low);
+		return;
 	}
 
 	// split at newline char

@@ -97,6 +97,9 @@ public:
 		std::vector<std::string>& links
 	);
 
+	// try finding a system package using pkg-conf
+	static std::vector<std::string> findLib(const char* kw);
+
 	// find all linkable objects (.a) in path
 	static std::vector<std::filesystem::path> findLinkableObjects(const std::filesystem::path& p);
 

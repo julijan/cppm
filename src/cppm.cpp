@@ -224,6 +224,16 @@ int main(int argc, const char* argv[]) {
 		return 0;
 	}
 
+	if (strcmp(command, "find") == 0) {
+		// find a system library
+		if (argc < 3) {
+			PrintNice::warning("Keyword not provided");
+			return 1;
+		}
+		Package::findLib(argv[2]);
+		return 0;
+	}
+
 	if (strcmp(command, "vcpkg") == 0) {
 
 		if (argc == 2) {
