@@ -234,6 +234,25 @@ int main(int argc, const char* argv[]) {
 		return 0;
 	}
 
+	if (strcmp(command, "use") == 0) {
+		// use a system library
+
+		if (!isPackage) {
+			PrintNice::warning("use command can only be executed within a package");
+			return 1;
+		}
+		
+		Package pkg = std::get<Package>(package);
+		
+		if (argc < 3) {
+			PrintNice::warning("Library name required");
+			return 1;
+		}
+
+		Package::useLib(pkg, argv[2]);
+		return 0;
+	}
+
 	if (strcmp(command, "vcpkg") == 0) {
 
 		if (argc == 2) {

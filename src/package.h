@@ -5,6 +5,7 @@
 #include <variant>
 #include <functional>
 #include <set>
+#include <unordered_set>
 
 #include "boost/json.hpp"
 
@@ -38,6 +39,7 @@ public:
 		std::vector<std::string> libDirs,
 		std::vector<std::string> linkableObjects,
 		std::vector<std::string> dependencies,
+		std::vector<std::string> uses,
 		std::vector<std::string> tests,
 		bool managed,
 		int registeredAt
@@ -97,8 +99,17 @@ public:
 		std::vector<std::string>& links
 	);
 
-	// try finding a system package using pkg-conf
+	// try finding a system library using pkg-conf
 	static std::vector<std::string> findLib(const char* kw);
+
+	// use a system library
+	static void useLib(Package& pkg, std::string libName);
+
+	// return all include dirs for pkg.uses
+	static std::unordered_set<std::string> useIncludeDirs(const Package& pkg);
+
+	// return all include dirs for given used global lib
+	static std::unordered_set<std::string> useIncludeDirs(const Package& pkg, const char* libName);
 
 	// find all linkable objects (.a) in path
 	static std::vector<std::filesystem::path> findLinkableObjects(const std::filesystem::path& p);

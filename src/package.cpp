@@ -38,6 +38,7 @@ Package::Package(
 	std::vector<std::string> libDirs,
 	std::vector<std::string> linkableObjects,
 	std::vector<std::string> dependencies,
+	std::vector<std::string> uses,
 	std::vector<std::string> tests,
 	bool managed,
 	int registeredAt)
@@ -50,6 +51,7 @@ Package::Package(
 	this->libDirs = libDirs;
 	this->linkableObjects = linkableObjects;
 	this->dependencies = dependencies;
+	this->uses = uses;
 	this->tests = tests;
 	this->managed = managed;
 	this->registeredAt = registeredAt;
@@ -221,6 +223,9 @@ void Package::createIncludesDirectories(const std::filesystem::path& p)
 	std::filesystem::path includesDir = utils::fs::extendPath<1>(p, { "includes" });
 	std::filesystem::path includesSrc = utils::fs::extendPath<2>(p, { "includes", "src" });
 	std::filesystem::path includesLib = utils::fs::extendPath<2>(p, { "includes", "lib" });
+	std::filesystem::path includesUses = utils::fs::extendPath<2>(p, { "includes", "uses" });
+	std::filesystem::path includesUsesSrc = utils::fs::extendPath<3>(p, { "includes", "uses", "src" });
+	std::filesystem::path includesUsesLib = utils::fs::extendPath<3>(p, { "includes", "uses", "lib" });
 
 	// re-create includes directories
 	if (!std::filesystem::exists(includesDir)) {
@@ -231,6 +236,15 @@ void Package::createIncludesDirectories(const std::filesystem::path& p)
 	}
 	if (!std::filesystem::exists(includesLib)) {
 		std::filesystem::create_directory(includesLib);
+	}
+	if (!std::filesystem::exists(includesUses)) {
+		std::filesystem::create_directory(includesUses);
+	}
+	if (!std::filesystem::exists(includesUsesSrc)) {
+		std::filesystem::create_directory(includesUsesSrc);
+	}
+	if (!std::filesystem::exists(includesUsesLib)) {
+		std::filesystem::create_directory(includesUsesLib);
 	}
 }
 
@@ -753,6 +767,7 @@ void Package::composePackage(const char *name, std::vector<std::string> &include
 		links,
 		std::vector<std::string>(),
 		std::vector<std::string>(),
+		std::vector<std::string>(),
 		false,
 		utils::time::unixTimestamp()
 	);
@@ -829,6 +844,74 @@ std::vector<std::string> Package::findLib(const char *kw)
 	}
 
 	return lines;
+}
+
+void Package::useLib(Package &pkg, std::string libName)
+{
+
+	if (!pkg.managed) {
+		PrintNice::warning("use command can only be executed within a managed package");
+		return;
+	}
+
+	if (utils::system::runCommand("pkg-config --exists " + libName) != 0) {
+		PrintNice::warning("Library " + libName + " not found");
+		return;
+	}
+
+	// library exists, check if already used by pkg
+	for (std::string used: pkg.uses) {
+		if (used == libName) {
+			PrintNice::warning("Package " + pkg.name + " already uses " + libName);
+			return;
+		}
+	}
+
+	// package can be used
+	pkg.uses.push_back(libName);
+	Package::updateRegistry(pkg);
+
+	// re-generate premake
+	Package::generatePremake(pkg);
+}
+
+std::unordered_set<std::string> Package::useIncludeDirs(const Package &pkg)
+{
+	std::unordered_set<std::string> dirs;
+
+	for (const std::string& libName: pkg.uses) {
+		std::unordered_set<std::string> libIncludeDirs = Package::useIncludeDirs(pkg, libName.c_str());
+		dirs.insert(libIncludeDirs.begin(), libIncludeDirs.end());
+	}
+
+	return dirs;
+}
+
+std::unordered_set<std::string> Package::useIncludeDirs(const Package &pkg, const char *libName)
+{
+	std::unordered_set<std::string> dirs;
+	std::string command = "pkg-config --cflags-only-I ";
+	command += libName;
+
+	std::string result = "";
+	try {
+		result = utils::system::runCommandOutput(command);
+	} catch(std::runtime_error e) {
+		PrintNice::error("Failed to execute pkg-config for " + std::string(libName) + ": " + e.what());
+	}
+
+	std::vector<std::string> items = utils::string::split(result, " ");
+
+	for (std::string& item: items) {
+		// item is a path prepended by "-I"
+		if (item.size() < 3) {
+			continue;
+		}
+		
+		dirs.insert(utils::string::trim(item).substr(2));
+	}
+
+	return dirs;
 }
 
 std::vector<std::filesystem::path> Package::findLinkableObjects(const std::filesystem::path &p)
@@ -1418,7 +1501,7 @@ bool Package::isTransientDependency(const Package &pkg, const char *depName)
 void Package::materializeDependencies(const Package &pkg)
 {
 
-	if (!pkg.managed || pkg.dependencies.size() == 0) {
+	if (!pkg.managed || (pkg.dependencies.size() == 0 && pkg.uses.size() == 0)) {
 		// nothing to do
 		return;
 	}
@@ -1431,6 +1514,27 @@ void Package::materializeDependencies(const Package &pkg)
 
 	// re-create includes directories
 	Package::createIncludesDirectories(pkg);
+
+	// copy used global libs
+	for (const std::string& usedLib: pkg.uses) {
+		
+		// create directories for current used lib
+		std::filesystem::path includesUsesSrc = Package::getPath<4>(pkg, { "includes", "uses", "src", usedLib.c_str() });
+		std::filesystem::create_directory(includesUsesSrc);
+		std::filesystem::path includesUsesLib = Package::getPath<4>(pkg, { "includes", "uses", "lib", usedLib.c_str() });
+		std::filesystem::create_directory(includesUsesLib);
+
+		// copy files
+		std::unordered_set<std::string> libIncludeDirs = Package::useIncludeDirs(pkg, usedLib.c_str());
+		int counter = 0;
+		for (auto& usePath: libIncludeDirs) {
+			std::filesystem::path from = usePath;
+			std::filesystem::path to = utils::fs::extendPath<1>(includesUsesSrc, { std::to_string(counter).c_str() });
+
+			std::filesystem::copy(from, to, std::filesystem::copy_options::recursive);
+			counter++;
+		}
+	}
 
 	for (const std::string& depName: pkg.dependencies) {
 		MaybePackage depMaybe = Package::get(depName.c_str());
@@ -1445,9 +1549,6 @@ void Package::materializeDependencies(const Package &pkg)
 		// materialize dependency before copying contents
 		Package::materializeDependencies(dep);
 
-		// copy materialized contents of the dependency to includes
-		std::vector<DependencyTarget> targets = Package::dependencyTargets(pkg, dep);
-
 		if (dep.type == PackageType::Composed) {
 			// composed package, create it's directories
 			std::filesystem::path depPathSrc = utils::fs::extendPath<1>(includesSrc, { dep.name.c_str() });
@@ -1455,6 +1556,9 @@ void Package::materializeDependencies(const Package &pkg)
 			std::filesystem::create_directory(depPathSrc);
 			std::filesystem::create_directory(depPathLib);
 		}
+
+		// copy materialized contents of the dependency to includes
+		std::vector<DependencyTarget> targets = Package::dependencyTargets(pkg, dep);
 
 		for (DependencyTarget& target: targets) {
 			std::filesystem::copy(
@@ -1894,8 +1998,20 @@ void Package::generatePremake(const Package &pkg)
 	fstream << "\tarchitecture \"x64\"" << std::endl;
 	fstream << "\ttargetdir \"bin/%{cfg.buildcfg}\"" << std::endl;
 	fstream << "\tfiles { \"./src/**.h\", \"./src/**.cpp\" }" << std::endl;
-	fstream << "\tincludedirs { \"./includes/src/**\" }" << std::endl;
-	fstream << "\tlibdirs { \"./includes/lib/**\" }" << std::endl;
+	fstream << "\tincludedirs { \"./includes/src/**\", \"./includes/uses/src/**\" }" << std::endl;
+	fstream << "\tlibdirs { \"./includes/lib/**\", \"./includes/uses/lib/**\" }" << std::endl;
+
+	if (pkg.uses.size() > 0) {
+		// uses system libraries
+		fstream << "\tbuildoptions {" << std::endl;
+
+		for (int i = 0; i < pkg.uses.size(); ++i) {
+			fstream << "\t\t\"`pkg-config --cflags " << pkg.uses[i] << "`\"" <<
+						(i < pkg.uses.size() - 1 ? "," : "") << std::endl;
+		}
+
+		fstream << "\t}" << std::endl;
+	}
 
 	std::set<std::string> linked = Package::listLinkable(pkg);
 
@@ -1988,6 +2104,11 @@ void Package::generateVSC(const Package &pkg)
 	// allow includes from current project
 	includePaths.push_back("${workspaceFolder}/src/**/*");
 	includePaths.push_back("${workspaceFolder}/includes/src/**/*");
+
+	std::unordered_set<std::string> useDirs = Package::useIncludeDirs(pkg);
+	for (auto& useDir: useDirs) {
+		includePaths.push_back(useDir.c_str());
+	}
 
 	configuration["name"] = pkg.name;
 	configuration["includePath"] = includePaths;
@@ -2253,13 +2374,23 @@ std::string Package::typeToString(PackageType t) {
 void Package::listDependencies(const Package &pkg)
 {
 	const auto dependencies = Package::getDependencies(pkg);
-	if (dependencies.size() == 0) {
+	if (dependencies.size() == 0 && pkg.uses.size() == 0) {
 		PrintNice::print("No dependencies", OutputType::Normal, TextStyle::Italic);
-	} else {
+	}
+	if (dependencies.size() > 0) {
 		PrintNice::print("📁 Dependencies:");
 		for (const Package& dep: dependencies) {
 			auto stream = PrintNice::stream();
 			stream << "|-" << Package::managedIndicator(dep.managed) << dep.name.c_str() << StreamOut();
+		}
+	}
+
+	if (pkg.managed) {
+		// list used system libs
+		PrintNice::print("🔧 Uses:");
+		for (const std::string& use: pkg.uses) {
+			auto stream = PrintNice::stream();
+			stream << "|-" << use.c_str() << StreamOut();
 		}
 	}
 }
@@ -2561,6 +2692,7 @@ Package Package::fromJSON(PackageJSON data)
 		utils::json::extractArrayFromJSONObject(data, "libDirs"),
 		utils::json::extractArrayFromJSONObject(data, "linkableObjects"),
 		utils::json::extractArrayFromJSONObject(data, "dependencies"),
+		utils::json::extractArrayFromJSONObject(data, "uses"),
 		utils::json::extractArrayFromJSONObject(data, "tests"),
 		data.at("managed").as_bool(),
 		data.at("registeredAt").as_int64()
@@ -2580,6 +2712,7 @@ PackageJSON Package::toJSON(Package &pkg)
 	json["includeDirs"] = utils::json::toJSONArray(pkg.includeDirs);
 	json["libDirs"] = utils::json::toJSONArray(pkg.libDirs);
 	json["dependencies"] = utils::json::toJSONArray(pkg.dependencies);
+	json["uses"] = utils::json::toJSONArray(pkg.uses);
 	json["tests"] = utils::json::toJSONArray(pkg.tests);
 	return json;
 }

@@ -25,6 +25,7 @@ struct PackageData {
 	std::vector<std::string> includeDirs; // only used for composed packages
 	std::vector<std::string> libDirs; // only used for composed packages
 	std::vector<std::string> linkableObjects;
+	std::vector<std::string> uses; // system libraries used
 	std::vector<std::string> dependencies;
 	bool managed;
 	int registeredAt;

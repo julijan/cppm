@@ -209,6 +209,22 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 	},
 
 	{
+		.command = "use",
+		.alias = "",
+		.description = "Use a global library. This will include all relevant dependencies for the given system library. To search for system libraries use cppm find [keyword]. You can also use this to include vcpkg libraries, to learn how to make them visible to cppm read cppm help find.",
+		.descriptionShort = "Use a global library",
+		.arguments = {
+			{
+				.name = "libName",
+				.description = "Use given libName",
+				.required = true,
+				.list = false,
+				.literal = false
+			}
+		}
+	},
+
+	{
 		.command = "build",
 		.alias = "",
 		.description = "Compile package. Binaries are generated in /bin/Debug and /bin/Release. Release binaries are smaller and more performant, but do not include safeguards provided by debug binaries. By default debug binaries are built, to build release binaries use --release flag.",
