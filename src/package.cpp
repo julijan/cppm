@@ -2238,19 +2238,12 @@ void Package::vcpkgRegister(const char* pkgName)
 	command += " 2>&1";
 
 	// read output of vcpkg depend-info into a string
-	FILE* pipe = popen(command.c_str(), "r");
-
-	if (!pipe) {
-		PrintNice::error("Error running command vcpkg depend-info", ErrorSeverity::Low);
-		return;
+	std::string result;
+	try {
+		result = utils::system::runCommandOutput(command);
+	} catch (std::runtime_error e) {
+		PrintNice::error(e.what(), ErrorSeverity::Low);
 	}
-
-	char buffer[128];
-	std::string result = "";
-	while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-		result += buffer;
-	}
-	pclose(pipe);
 
 	// split at newline char
 	std::vector<std::string> lines = utils::string::split(result, "\n");

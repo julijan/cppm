@@ -61,8 +61,12 @@ namespace utils {
 	namespace system {
 		SystemType type();
 
+		// run command and return exit code
 		int runCommand(const char* const command);
 		int runCommand(std::string command);
+
+		// execute command and return stdout output
+		std::string runCommandOutput(std::string command);
 
 		// return system user, used for accessing the home directory
 		std::string user();

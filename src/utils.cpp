@@ -188,6 +188,24 @@ namespace utils {
 			return runCommand(command.c_str());
 		}
 
+		std::string runCommandOutput(std::string command)
+		{
+			FILE* pipe = popen(command.c_str(), "r");
+
+			if (!pipe) {
+				throw std::runtime_error("Error running command: " + command);
+			}
+
+			char buffer[128];
+			std::string result = "";
+			while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+				result += buffer;
+			}
+			pclose(pipe);
+
+			return result;
+		}
+
 		std::string user() {
 			if (type() == SystemType::Unix) {
 				return std::getenv("USER");
