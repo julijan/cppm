@@ -225,6 +225,22 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 	},
 
 	{
+		.command = "unuse",
+		.alias = "",
+		.description = "Undoes use of a global library.",
+		.descriptionShort = "Undoes use of a global library",
+		.arguments = {
+			{
+				.name = "libName",
+				.description = "Unuse given libName",
+				.required = true,
+				.list = false,
+				.literal = false
+			}
+		}
+	},
+
+	{
 		.command = "build",
 		.alias = "",
 		.description = "Compile package. Binaries are generated in /bin/Debug and /bin/Release. Release binaries are smaller and more performant, but do not include safeguards provided by debug binaries. By default debug binaries are built, to build release binaries use --release flag.",

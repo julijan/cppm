@@ -105,6 +105,9 @@ public:
 	// use a system library
 	static void useLib(Package& pkg, std::string libName);
 
+	// unuse a previously used system library
+	static void unuseLib(Package& pkg, std::string libName);
+
 	// return all include dirs for pkg.uses
 	static std::unordered_set<std::string> useIncludeDirs(const Package& pkg);
 

@@ -875,6 +875,30 @@ void Package::useLib(Package &pkg, std::string libName)
 	Package::generatePremake(pkg);
 }
 
+void Package::unuseLib(Package &pkg, std::string libName)
+{
+	if (!pkg.managed) {
+		PrintNice::warning("unuse command can only be executed within a managed package");
+		return;
+	}
+
+	// package can be used
+	auto index = std::find_if(pkg.uses.begin(), pkg.uses.end(), [&libName](std::string& use) {
+		return use == libName;
+	});
+	
+	if (index == pkg.uses.end()) {
+		PrintNice::warning("Can't unuse, " + libName + " not used by " + pkg.name);
+		return;
+	}
+
+	pkg.uses.erase(index);
+	Package::updateRegistry(pkg);
+
+	// re-generate premake
+	Package::generatePremake(pkg);
+}
+
 std::unordered_set<std::string> Package::useIncludeDirs(const Package &pkg)
 {
 	std::unordered_set<std::string> dirs;

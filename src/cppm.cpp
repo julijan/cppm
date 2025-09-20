@@ -253,6 +253,25 @@ int main(int argc, const char* argv[]) {
 		return 0;
 	}
 
+	if (strcmp(command, "unuse") == 0) {
+		// unuse a system library
+
+		if (!isPackage) {
+			PrintNice::warning("unuse command can only be executed within a package");
+			return 1;
+		}
+		
+		Package pkg = std::get<Package>(package);
+		
+		if (argc < 3) {
+			PrintNice::warning("Library name required");
+			return 1;
+		}
+
+		Package::unuseLib(pkg, argv[2]);
+		return 0;
+	}
+
 	if (strcmp(command, "vcpkg") == 0) {
 
 		if (argc == 2) {
