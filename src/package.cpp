@@ -1932,17 +1932,17 @@ void Package::push(const Package &pkg)
 		// push to remote
 		utils::system::runCommand("cd " + pkgDir.string() + " && CPPM_ENABLE_GIT=1 git push origin main");
 		
-		// untrack includes
-		Package::gitSetTrackIncludes(pkg, false, Empty());
-
-		// unmaterialize
-		Package::unmaterializeDependencies(pkg);
-
 	} else {
 		// no dependecy changes, unstage
 		std::cout << "Dependencies unchanged" << std::endl;
 		utils::system::runCommand("cd " + pkgDir.string() + " && git reset includes/");
 	}
+
+	// untrack includes
+	Package::gitSetTrackIncludes(pkg, false, Empty());
+
+	// unmaterialize
+	Package::unmaterializeDependencies(pkg);
 
 	// push to remote
 	const std::string command = "cd " + pkgDir.string() + " && CPPM_ENABLE_GIT=1 git push origin main";
