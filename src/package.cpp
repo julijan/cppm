@@ -2092,7 +2092,7 @@ void Package::generatePremake(const Package &pkg)
 		pkg.type,
 		"bin/%{cfg.buildcfg}",
 		{ "./src/**.h", "./src/**.cpp" },
-		{ "./includes/src/**", "./includes/uses/src/**" },
+		{ "./includes/src", "./includes/src/**", "./includes/uses/src/**" },
 		{ "./includes/lib/**", "./includes/uses/lib/**" },
 		pkg.uses,
 		linked
@@ -2111,7 +2111,7 @@ void Package::generatePremake(const Package &pkg)
 			Package::typeFromString("ConsoleApp"),
 			"./tests/bin",
 			{ "./tests/" + testName + ".cpp" },
-			{ "./src", "./src/**", "./includes/**" },
+			{ "./includes/src", "./includes/src/**", "./src", "./src/**" },
 			{ "./includes/lib/**" },
 			pkg.uses,
 			linked
