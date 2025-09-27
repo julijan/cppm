@@ -1,3 +1,5 @@
+require "modules.premake-export-compile-commands.export-compile-commands"
+
 workspace "cppm"
 	configurations { "Debug", "Release" }
 
