@@ -2174,7 +2174,7 @@ void Package::generatePremake(const Package &pkg)
 	bool testLib = !Package::isLibrary(pkg) && pkg.tests.size() > 0;
 	if (testLib) {
 		fstream << Package::premakeProject(
-			"Lib-" + pkg.name,
+			"testlib-" + pkg.name,
 			Package::typeFromString("StaticLib"),
 			"./lib",
 			{ "./src/**.h", "./src/**.cpp" },
@@ -2192,12 +2192,16 @@ void Package::generatePremake(const Package &pkg)
 	}
 
 	// tests projects
+	std::vector<std::string> linksTests;
+	linksTests.push_back(pkg.name);
+
+	if (testLib) {
+		linksTests.push_back("testlib-" + pkg.name);
+	}
+
+	linksTests.insert(linksTests.end(), linked.begin(), linked.end());
+
 	for (const std::string& testName: pkg.tests) {
-
-		std::vector<std::string> links;
-		links.push_back(pkg.name);
-		links.insert(links.end(), linked.begin(), linked.end());
-
 		fstream << Package::premakeProject(
 			"Test-" + testName,
 			Package::typeFromString("ConsoleApp"),
@@ -2206,7 +2210,7 @@ void Package::generatePremake(const Package &pkg)
 			{ "./includes/src", "./includes/src/**", "./src", "./src/**" },
 			testsLibdirs,
 			pkg.uses,
-			linked
+			linksTests
 		);
 	}
 
