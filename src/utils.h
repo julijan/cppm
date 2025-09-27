@@ -13,7 +13,7 @@
 namespace utils {
 	namespace string {
 
-		// replace all occurences of needle with replaceWith
+		// replace all occurrences of needle with replaceWith
 		std::string replaceAll(
 			std::string str,
 			const char* needle,
@@ -30,7 +30,7 @@ namespace utils {
 		// returns a new string
 		std::string trim(const std::string& str);
 
-		// used to disaply large blocks of text in a nicer format
+		// used to display large blocks of text in a nicer format
 		// toWidth will insert a line break every charWidth chars, unless strict = false
 		// in which case it will avoid breaking words while still trying to get close to desired width
 		std::string toWidth(const std::string str, unsigned int charWidth, bool strict);
@@ -60,6 +60,10 @@ namespace utils {
 
 			return path;
 		};
+
+		// return a vector of all paths for which the predicate returns true
+		// predicate will receive all paths recursively, starting from the entry
+		std::vector<path> filterRecursive(path entry, std::function<bool(const path& path)> predicate);
 	}
 
 	namespace system {
