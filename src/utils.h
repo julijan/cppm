@@ -4,7 +4,9 @@
 #include <filesystem>
 #include <functional>
 #include <algorithm>
-#include "boost/json.hpp"
+
+#include "boost/json/stream_parser.hpp" // IWYU pragma: keep
+#include "boost/json/value.hpp"
 
 #include "types.h"
 

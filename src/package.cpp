@@ -4,17 +4,16 @@
 #include <cstring>
 #include <cstdio>
 #include <vector>
-#include <set>
 #include <string>
 #include <algorithm>
 #include <cstdlib>
 
 #include "fmt/format.h"
-#include "boost/json.hpp"
 
 #include "package.h"
 #include "utils.h"
 #include "core.h"
+#include "PrintNice.h"
 
 Package::Package(std::string name, std::string path, PackageType type, bool managed)
 {

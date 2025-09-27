@@ -7,9 +7,10 @@
 #include <vector>
 #include <unordered_set>
 
-#include "boost/json.hpp"
+#include "boost/json/object.hpp"
+#include "boost/json/array.hpp"
 
-#include "PrintNice.h"
+#include "print-nice/Types.h"
 
 #include "types.h"
 
