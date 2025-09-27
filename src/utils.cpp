@@ -299,3 +299,27 @@ namespace utils {
 	}
 
 }
+
+std::string utils::vector::join(const std::vector<std::string>& vec, const std::string& glue)
+{
+	std::string joined = "";
+	for (auto i = vec.cbegin(); i != vec.cend(); ++i) {
+		joined += *i;
+		if (i != vec.cend() - 1) {
+			joined += glue;
+		}
+	}
+	return joined;
+}
+
+std::string utils::vector::toQuotedList(const std::vector<std::string>& vec)
+{
+	return utils::vector::join(
+		utils::vector::map<std::string, std::string>(vec, [](const std::string& item) {
+			std::string out = "";
+			out += '"' + item + '"';
+			return out;
+		}),
+		", "
+	);
+}
