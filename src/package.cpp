@@ -2098,6 +2098,27 @@ void Package::generatePremake(const Package &pkg)
 		linked
 	);
 
+	// if project is not a library, but has at least one test
+	// generate a static lib binary for it so it can be used within tests
+	bool testLib = !Package::isLibrary(pkg) && pkg.tests.size() > 0;
+	if (testLib) {
+		fstream << Package::premakeProject(
+			"Lib-" + pkg.name,
+			Package::typeFromString("StaticLib"),
+			"./lib",
+			{ "./src/**.h", "./src/**.cpp" },
+			{ "./includes/src", "./includes/src/**", "./includes/uses/src/**" },
+			{ "./includes/lib/**", "./includes/uses/lib/**" },
+			pkg.uses,
+			linked
+		);
+	}
+
+
+	std::vector<std::string> testsLibdirs({ "./includes/lib/**" });
+	if (testLib) {
+		testsLibdirs.push_back("./lib");
+	}
 
 	// tests projects
 	for (const std::string& testName: pkg.tests) {
@@ -2107,12 +2128,12 @@ void Package::generatePremake(const Package &pkg)
 		links.insert(links.end(), linked.begin(), linked.end());
 
 		fstream << Package::premakeProject(
-			"Test" + testName,
+			"Test-" + testName,
 			Package::typeFromString("ConsoleApp"),
 			"./tests/bin",
 			{ "./tests/" + testName + ".cpp" },
 			{ "./includes/src", "./includes/src/**", "./src", "./src/**" },
-			{ "./includes/lib/**" },
+			testsLibdirs,
 			pkg.uses,
 			linked
 		);
