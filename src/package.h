@@ -250,6 +250,17 @@ public:
 	// generate premake5.lua for given Package
 	static void generatePremake(const Package& pkg);
 
+	static std::string premakeProject(
+		const std::string& name,
+		PackageType kind,
+		const char* targetdir,
+		std::vector<std::string> files,
+		std::vector<std::string> includedirs,
+		std::vector<std::string> libdirs,
+		std::vector<std::string> uses,
+		std::vector<std::string> links
+	);
+
 	// generate VSC (Visual Studio Code) configuration for given package
 	static void generateVSC(const Package& pkg);
 

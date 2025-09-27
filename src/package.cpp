@@ -1000,11 +1000,10 @@ std::vector<std::filesystem::path> Package::findLinkableObjects(const std::files
 
 std::string Package::promptType(bool expectLibrary) {
 	// if expectLibrary (only for non-managed projects), list is limited to library types
-	std::initializer_list<const char*> options = expectLibrary ?
-		std::initializer_list({ "StaticLib", "SharedLib" }) :
-		std::initializer_list({ "ConsoleApp", "WindowedApp", "StaticLib", "SharedLib" });
+	std::vector<std::string> options = expectLibrary ?
+		std::vector<std::string>({ "StaticLib", "SharedLib" }) :
+		std::vector<std::string>({ "ConsoleApp", "WindowedApp", "StaticLib", "SharedLib" });
 
-	
 	// prompt user to select type
 	std::cout << "Select project type:" << std::endl;
 	for (int i = 0; i < options.size(); i++) {
@@ -2088,129 +2087,101 @@ void Package::generatePremake(const Package &pkg)
 	fstream << "\tconfigurations { \"Debug\", \"Release\" }" << std::endl << std::endl;
 
 	// project
-	fstream << "project \"" << pkg.name << '"' << std::endl; // variable
-	fstream << "\tlanguage \"C++\"" << std::endl;
-	fstream << "\tkind \"" << Package::typeToString(pkg.type) << '"' << std::endl; // variable
-	fstream << "\tcppdialect \"C++20\"" << std::endl;
-	fstream << "\tarchitecture \"x64\"" << std::endl;
-	fstream << "\ttargetdir \"bin/%{cfg.buildcfg}\"" << std::endl;
-	fstream << "\tfiles { \"./src/**.h\", \"./src/**.cpp\" }" << std::endl;
-	fstream << "\tincludedirs { \"./includes/src/**\", \"./includes/uses/src/**\" }" << std::endl;
-	fstream << "\tlibdirs { \"./includes/lib/**\", \"./includes/uses/lib/**\" }" << std::endl;
-
-	if (pkg.uses.size() > 0) {
-		// uses system libraries
-		fstream << "\tbuildoptions {" << std::endl;
-
-		for (int i = 0; i < pkg.uses.size(); ++i) {
-			fstream << "\t\t\"`pkg-config --cflags " << pkg.uses[i] << "`\"" <<
-						(i < pkg.uses.size() - 1 ? "," : "") << std::endl;
-		}
-
-		fstream << "\t}" << std::endl;
-
-		fstream << "\tlinkoptions {" << std::endl;
-
-		for (int i = 0; i < pkg.uses.size(); ++i) {
-			fstream << "\t\t\"`pkg-config --libs " << pkg.uses[i] << "`\"" <<
-						(i < pkg.uses.size() - 1 ? "," : "") << std::endl;
-		}
-
-		fstream << "\t}" << std::endl;
-	}
-
 	std::vector<std::string> linked = Package::listLinkable(pkg);
+	fstream << Package::premakeProject(
+		pkg.name,
+		pkg.type,
+		"bin/%{cfg.buildcfg}",
+		{ "./src/**.h", "./src/**.cpp" },
+		{ "./includes/src/**", "./includes/uses/src/**" },
+		{ "./includes/lib/**", "./includes/uses/lib/**" },
+		pkg.uses,
+		linked
+	);
 
-	if (pkg.dependencies.size() > 0) {
-		// link libraries
-		if (linked.size() > 0) {
-			// include links in premake
-			fstream << "\tlinks {" << std::endl;
-
-			int current = 0;
-			for (const std::string& link: linked) {
-				fstream << "\t\t\"" << link << '"' << (current == linked.size() - 1 ? "" : ",") << std::endl;
-				current++;
-			}
-
-			fstream << "\t}\n" << std::endl;
-		}
-	}
-
-	// filters
-	fstream << "\tfilter \"configurations:Debug\"" << std::endl;
-	fstream << "\t\tdefines { \"DEBUG\" }" << std::endl;
-	fstream << "\t\tsymbols \"On\"" << std::endl;
-
-	fstream << "\tfilter \"configurations:Release\"" << std::endl;
-	fstream << "\t\tdefines { \"NDEBUG\" }" << std::endl;
-	fstream << "\t\toptimize \"On\"" << std::endl;
 
 	// tests projects
 	for (const std::string& testName: pkg.tests) {
-		fstream << '\n';
-		fstream << "project \"Test-" << testName << "\"" << std::endl; // variable
-		fstream << "\tlanguage \"C++\"" << std::endl;
-		fstream << "\tkind \"ConsoleApp\"" << std::endl;
-		fstream << "\tcppdialect \"C++20\"" << std::endl;
-		fstream << "\tarchitecture \"x64\"" << std::endl;
-		fstream << "\ttargetdir \"./tests/bin\"" << std::endl;
-		fstream << "\tfiles { \"./tests/" << testName << ".cpp\" }" << std::endl; // variable
-		fstream << "\tincludedirs { \"./src\", \"./src/**\", \"./includes/**\" }" << std::endl;
-		fstream << "\tlibdirs { \"./includes/lib/**\" }" << std::endl;
-	
-		if (Package::isLibrary(pkg)) {
-			// link package itself to test, if pkg is a library
-			fstream << "\tlinks {" << std::endl;
-			fstream << "\t\t\"" << pkg.name << "\"" << (pkg.dependencies.size() > 0 ? "," : "") << '\n';
 
-			// link libraries
-			if (linked.size() > 0) {
-				int current = 0;
-				for (const std::string& link: linked) {
-					fstream << "\t\t\"" << link << '"' << (current == linked.size() - 1 ? "" : ",") << std::endl;
-					current++;
-				}
-			}
-	
-			fstream << "\t}" << std::endl;
-	
-		}
+		std::vector<std::string> links;
+		links.push_back(pkg.name);
+		links.insert(links.end(), linked.begin(), linked.end());
 
-		if (pkg.uses.size() > 0) {
-			// uses system libraries
-			fstream << "\tbuildoptions {" << std::endl;
-
-			for (int i = 0; i < pkg.uses.size(); ++i) {
-				fstream << "\t\t\"`pkg-config --cflags " << pkg.uses[i] << "`\"" <<
-							(i < pkg.uses.size() - 1 ? "," : "") << std::endl;
-			}
-
-			fstream << "\t}" << std::endl;
-
-			fstream << "\tlinkoptions {" << std::endl;
-
-			for (int i = 0; i < pkg.uses.size(); ++i) {
-				fstream << "\t\t\"`pkg-config --libs " << pkg.uses[i] << "`\"" <<
-							(i < pkg.uses.size() - 1 ? "," : "") << std::endl;
-			}
-
-			fstream << "\t}" << std::endl;
-		}
-	
-		// filters
-		fstream << "\tfilter \"configurations:Debug\"" << std::endl;
-		fstream << "\t\tdefines { \"DEBUG\" }" << std::endl;
-		fstream << "\t\tsymbols \"On\"" << std::endl;
-	
-		fstream << "\tfilter \"configurations:Release\"" << std::endl;
-		fstream << "\t\tdefines { \"NDEBUG\" }" << std::endl;
-		fstream << "\t\toptimize \"On\"" << std::endl;
+		fstream << Package::premakeProject(
+			"Test" + testName,
+			Package::typeFromString("ConsoleApp"),
+			"./tests/bin",
+			{ "./tests/" + testName + ".cpp" },
+			{ "./src", "./src/**", "./includes/**" },
+			{ "./includes/lib/**" },
+			pkg.uses,
+			linked
+		);
 	}
 
 	// done, flush and close
 	fstream.flush();
 	fstream.close();
+}
+
+std::string Package::premakeProject(
+	const std::string& name,
+	PackageType kind,
+	const char* targetdir,
+	std::vector<std::string> files,
+	std::vector<std::string> includedirs,
+	std::vector<std::string> libdirs,
+	std::vector<std::string> uses,
+	std::vector<std::string> links
+)
+{
+	std::stringstream output;
+	
+	output << "project \"" << name << '"' << std::endl;
+	output << "\tlanguage \"C++\"" << std::endl;
+	output << "\tkind \"" << Package::typeToString(kind) << '"' << std::endl;
+	output << "\tcppdialect \"C++20\"" << std::endl;
+	output << "\tarchitecture \"x64\"" << std::endl;
+	output << "\ttargetdir \"" << targetdir << "\"" << std::endl;
+	output << "\tfiles { " << utils::vector::toQuotedList(files) << " }" << std::endl;
+	output << "\tincludedirs { " << utils::vector::toQuotedList(includedirs) << " }" << std::endl;
+	output << "\tlibdirs { " << utils::vector::toQuotedList(libdirs) << " }" << std::endl;
+
+	if (uses.size() > 0) {
+		// uses system libraries
+		output << "\tbuildoptions {" << std::endl;
+		output << utils::vector::join(
+			utils::vector::map<std::string, std::string>(uses, [](const std::string& str) {
+				return "\t\t\"`pkg-config --cflags " + str + "`\"";
+			}),
+			", "
+		);
+		output << "\t}" << std::endl;
+
+		output << "\tlinkoptions {" << std::endl;
+		output << utils::vector::join(
+			utils::vector::map<std::string, std::string>(uses, [](const std::string& str) {
+				return "\t\t\"`pkg-config --libs " + str + "`\"";
+			}),
+			", "
+		);
+		output << "\t}" << std::endl;
+	}
+
+	output << "\tlinks {" << std::endl;
+	output << "\t\t" << utils::vector::toQuotedList(links) << std::endl;
+	output << "\t}" << std::endl;
+
+	// filters
+	output << "\tfilter \"configurations:Debug\"" << std::endl;
+	output << "\t\tdefines { \"DEBUG\" }" << std::endl;
+	output << "\t\tsymbols \"On\"" << std::endl;
+
+	output << "\tfilter \"configurations:Release\"" << std::endl;
+	output << "\t\tdefines { \"NDEBUG\" }" << std::endl;
+	output << "\t\toptimize \"On\"" << std::endl;
+	
+	return output.str();
 }
 
 MaybePackage Package::includesPath(std::filesystem::path p)
