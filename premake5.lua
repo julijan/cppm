@@ -10,7 +10,7 @@ project "cppm"
 	architecture "x64"
 	targetdir "bin/%{cfg.buildcfg}"
 	files { "./src/**.h", "./src/**.cpp" }
-	includedirs { "./includes/src/**", "./includes/uses/src/**" }
+	includedirs { "./includes/src", "./includes/src/**", "./includes/uses/src/**" }
 	libdirs { "./includes/lib/**", "./includes/uses/lib/**" }
 	links {
 		"print-nice",
