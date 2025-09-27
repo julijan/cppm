@@ -2066,6 +2066,77 @@ bool Package::generateCmake(const Package &pkg)
 	return utils::system::runCommand("cd " + pkg.path + " && premake5 gmake > /dev/null") == 0;
 }
 
+void Package::generateClangCompileCommands(const Package& pkg)
+{
+	if (!pkg.managed) {
+		PrintNice::warning("Can only be done within a managed package");
+		return;
+	}
+
+	auto path = Package::getPath(pkg);
+
+	// find all .cpp files in src
+	std::vector<std::filesystem::path> cppFiles = utils::fs::filterRecursive(
+		utils::fs::extendPath<1>(path, { "src" }),
+		[](const std::filesystem::path& p) {
+			return p.extension() == ".cpp";
+		}
+	);
+
+	// output array containing configurations for all cpp files
+	boost::json::array output;
+
+	// find all directories in ./src
+	std::vector<std::string> includedirs = utils::vector::map<std::string, std::filesystem::path>(
+		utils::fs::filterRecursive(
+			utils::fs::extendPath<1>(path, { "src" }),
+			[](const std::filesystem::path& p) {
+				return std::filesystem::is_directory(p);
+			}
+		),
+		[](const std::filesystem::path& p) {
+			return "-I" + p.string();
+		}
+	);
+
+	// find all directories in ./includes
+	std::vector<std::string> includedirsIncludes = utils::vector::map<std::string, std::filesystem::path>(
+		utils::fs::filterRecursive(
+			utils::fs::extendPath<1>(path, { "includes" }),
+			[](const std::filesystem::path& p) {
+				return std::filesystem::is_directory(p);
+			}
+		),
+		[](const std::filesystem::path& p) {
+			return "-I" + p.string();
+		}
+	);
+
+	// join the src and includes directories
+	includedirs.insert(includedirs.end(), includedirsIncludes.begin(), includedirsIncludes.end());
+	
+	// same command for all files
+	std::string command = "cc -MD -MP -DDEBUG " + utils::vector::join(includedirs, " ");
+
+	for (const std::filesystem::path& cpp: cppFiles) {
+		boost::json::object conf;
+
+		conf["directory"] = path.string();
+		conf["file"] = cpp.string();
+		conf["command"] = command;
+		
+		output.push_back(conf);
+	}
+
+	// write to compile_commands.json
+	utils::json::write(
+		utils::fs::extendPath<1>(path, { "compile_commands.json" }),
+		output
+	);
+
+	PrintNice::success("Generated clang config in compile_commands.json");
+}
+
 bool Package::isLibrary(const Package &pkg)
 {
 	return pkg.type == PackageType::StaticLib || pkg.type == PackageType::SharedLib;

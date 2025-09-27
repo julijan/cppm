@@ -275,6 +275,9 @@ public:
 	// (re)generate cmake
 	static bool generateCmake(const Package& pkg);
 
+	// generate clang compile_commands.json
+	static void generateClangCompileCommands(const Package& pkg);
+
 	// given a path to a linkable object, returns it's name
 	// for example /path/to/libsomething.a -> something
 	static std::string linkableObject(const std::filesystem::path& p);

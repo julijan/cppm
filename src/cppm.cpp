@@ -1,8 +1,6 @@
 #include <iostream>
 #include <cstring>
-#include <algorithm>
 #include <filesystem>
-#include <span>
 
 #include "format.h"
 
@@ -380,6 +378,20 @@ int main(int argc, const char* argv[]) {
 		}
 
 		return someGenerated ? 0 : 1;
+	}
+
+	if (strcmp(command, "clang") == 0) {
+		// generate clang config file (compile_commands.json)
+		if (!isPackage) {
+			PrintNice::warning("This can only be done within a package directory");
+			return 1;
+		}
+
+		const Package pkg = std::get<Package>(package);
+
+		Package::generateClangCompileCommands(pkg);
+
+		return 0;
 	}
 
 	if (strcmp(command, "build") == 0) {

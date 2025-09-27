@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <vector>
 
 struct HelpArguments {
@@ -328,6 +329,15 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 			}
 		}
 	},
+
+	{
+		.command = "clang",
+		.alias = "",
+		.description = "Generate clang config file (compile_commands.json) in package root directory. This needs to be re-ran manually when you include new packages. This is useful if you use clang compiler or clangd LSP. This can only be executed within a managed package.",
+		.descriptionShort = "Generate clang configuration",
+		.arguments = {}
+	},
+
 	{
 		.command = "vsc",
 		.alias = "",
@@ -357,6 +367,7 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 			}
 		}
 	},
+
 	{
 		.command = "check",
 		.alias = "",
