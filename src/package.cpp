@@ -165,6 +165,7 @@ bool Package::create(const char *const name)
 	fsGitIgnore << "Makefile" << std::endl;
 	fsGitIgnore << "*.make" << std::endl;
 	fsGitIgnore << "tests/bin" << std::endl;
+	fsGitIgnore << "tests/lib" << std::endl;
 	fsGitIgnore.close();
 
 	// create README.md
@@ -2172,11 +2173,12 @@ void Package::generatePremake(const Package &pkg)
 	// if project is not a library, but has at least one test
 	// generate a static lib binary for it so it can be used within tests
 	bool testLib = !Package::isLibrary(pkg) && pkg.tests.size() > 0;
+	const char* testLibDir = "./tests/lib";
 	if (testLib) {
 		fstream << Package::premakeProject(
 			"testlib-" + pkg.name,
 			Package::typeFromString("StaticLib"),
-			"./lib",
+			testLibDir,
 			{ "./src/**.h", "./src/**.cpp" },
 			{ "./includes/src", "./includes/src/**", "./includes/uses/src/**" },
 			{ "./includes/lib/**", "./includes/uses/lib/**" },
@@ -2188,7 +2190,7 @@ void Package::generatePremake(const Package &pkg)
 
 	std::vector<std::string> testsLibdirs({ "./includes/lib/**" });
 	if (testLib) {
-		testsLibdirs.push_back("./lib");
+		testsLibdirs.push_back(testLibDir);
 	}
 
 	// tests projects
