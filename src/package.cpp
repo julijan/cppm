@@ -2119,6 +2119,11 @@ void Package::generateClangCompileCommands(const Package& pkg)
 	// same command for all files
 	std::string command = "cc -MD -MP -DDEBUG " + utils::vector::join(includedirs, " ");
 
+	// include used system packages
+	for (const std::string& used: pkg.uses) {
+		command += " " + utils::system::runCommandOutput("pkg-config --cflags-only-I " + used);
+	}
+
 	for (const std::filesystem::path& cpp: cppFiles) {
 		boost::json::object conf;
 
