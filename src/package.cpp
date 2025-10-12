@@ -14,6 +14,7 @@
 #include "utils.h"
 #include "core.h"
 #include "PrintNice.h"
+#include "j-utils-json/j-utils-json.h"
 
 Package::Package(std::string name, std::string path, PackageType type, bool managed)
 {
