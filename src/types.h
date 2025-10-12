@@ -1,7 +1,6 @@
 #pragma once
 
 #include <filesystem>
-#include <array>
 #include <variant>
 #include <string>
 #include <vector>
@@ -33,9 +32,6 @@ struct DependencyTarget {
 	std::filesystem::path from;
 	std::filesystem::path to;
 };
-
-template <typename T, unsigned int S>
-using SmartArray = std::array<T, S>;
 
 using Empty = const char*;
 

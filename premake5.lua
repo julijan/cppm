@@ -11,7 +11,7 @@ project "cppm"
 	includedirs { "./includes/src", "./includes/src/**", "./includes/uses/src/**" }
 	libdirs { "./includes/lib/**", "./includes/uses/lib/**" }
 	links {
-		"print-nice", "text-styled", "j-utils-json", "boost_json", "boost_json", "boost_container", "boost_container", "boost_system", "boost_system", "j-utils-string", "j-utils-system", "fmt", "fmtd", "boost_json", "boost_json", "boost_container", "boost_container", "boost_system", "boost_system"
+		"print-nice", "text-styled", "j-utils-json", "boost_json", "boost_json", "boost_container", "boost_container", "boost_system", "boost_system", "j-utils-string", "j-utils-system", "j-utils-fs", "fmt", "fmtd", "boost_json", "boost_json", "boost_container", "boost_container", "boost_system", "boost_system"
 	}
 	filter "configurations:Debug"
 		defines { "DEBUG" }

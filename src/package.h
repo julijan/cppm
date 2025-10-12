@@ -11,6 +11,7 @@
 #include "boost/json/array.hpp"
 
 #include "print-nice/Types.h"
+#include "j-utils-fs.h"
 
 #include "types.h"
 
