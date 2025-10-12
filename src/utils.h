@@ -36,22 +36,6 @@ namespace utils {
 		std::vector<path> filterRecursive(path entry, std::function<bool(const path& path)> predicate);
 	}
 
-	namespace system {
-		SystemType type();
-
-		// run command and return exit code
-		int runCommand(const char* const command);
-		int runCommand(std::string command);
-
-		// execute command and return stdout output
-		std::string runCommandOutput(std::string command);
-
-		// return system user, used for accessing the home directory
-		std::string user();
-
-		std::string appDataDir();
-	}
-
 	namespace vector {
 		// join vector elements using provided glue
 		std::string join(const std::vector<std::string>& vec, const std::string& glue);

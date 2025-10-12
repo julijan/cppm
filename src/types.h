@@ -6,11 +6,6 @@
 #include <string>
 #include <vector>
 
-enum SystemType {
-	Unix,
-	Windows
-};
-
 enum PackageType {
 	ConsoleApp = 1,
 	WindowedApp = 2,

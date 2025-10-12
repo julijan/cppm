@@ -1,6 +1,7 @@
 #include "core.h"
 #include "package.h"
 #include "utils.h"
+#include "j-utils-system/j-utils-system.h"
 
 std::filesystem::path Core::path() {
 	return utils::system::appDataDir() + std::filesystem::path::preferred_separator + ".cppm";
