@@ -1,9 +1,10 @@
+#include <algorithm>
 #include <cstring>
 #include <string>
 #include <iostream>
 
 #include "help.h"
-#include "utils.h"
+#include "j-utils-string/j-utils-string.h"
 
 namespace help {
 
