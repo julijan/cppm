@@ -35,6 +35,9 @@ namespace utils {
 
 		// repeat given string repeatCount times
 		std::string repeat(const char* str, unsigned int repeatCount);
+
+		// if you have C++20 available, use ends_with shipped with std::string
+		bool endsWith(const std::string& string, const std::string& endChars);
 	}
 
 }

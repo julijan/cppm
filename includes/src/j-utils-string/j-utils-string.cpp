@@ -145,5 +145,10 @@ namespace utils {
 			}
 			return out;
 		}
+
+		bool endsWith(const std::string& string, const std::string& endChars) {
+			if (endChars.length() > string.length()) {return false;}
+			return string.substr(string.length() - endChars.length()) == endChars;
+		}
 	}
 }
