@@ -1563,11 +1563,44 @@ bool Package::isTransientDependency(const Package &pkg, const char *depName)
 	return Package::isTransientDependency(pkg, std::get<Package>(depMaybe));
 }
 
-void Package::materializeDependencies(const Package &pkg)
+void Package::materializeDependencies(const Package &pkg, const Package& entry)
 {
 
-	if (!pkg.managed || (pkg.dependencies.size() == 0 && pkg.uses.size() == 0)) {
+	if (!entry.managed) {
+		// entry must be a managed package
+		return;
+	}
+
+	if (pkg.dependencies.size() == 0 && pkg.uses.size() == 0) {
 		// nothing to do
+		return;
+	}
+
+	if (!pkg.managed) {
+		// materializing non managed package
+		std::filesystem::path srcDir = Package::getPath<3>(
+			entry, { "includes", "src", pkg.name.c_str() }
+		);
+		std::filesystem::path libDir = Package::getPath<3>(
+			entry, { "includes", "lib", pkg.name.c_str() }
+		);
+
+		if (std::filesystem::exists(srcDir)) {
+			std::filesystem::remove_all(srcDir);
+		}
+		std::filesystem::copy(pkg.path, srcDir, std::filesystem::copy_options::recursive)
+		;
+		if (std::filesystem::exists(libDir)) {
+			std::filesystem::remove_all(libDir);
+		}
+		std::filesystem::copy(pkg.path, libDir, std::filesystem::copy_options::recursive);
+
+		// materialize dependencies of non-managed package
+		std::vector<Package> deps = Package::getDependencies(pkg);
+		for (Package& dep: deps) {
+			Package::materializeDependencies(dep, entry);
+		}
+		
 		return;
 	}
 
@@ -1596,6 +1629,9 @@ void Package::materializeDependencies(const Package &pkg)
 			std::filesystem::path from = usePath;
 			std::filesystem::path to = utils::fs::extendPath<1>(includesUsesSrc, { std::to_string(counter).c_str() });
 
+			if (std::filesystem::exists(to)) {
+				std::filesystem::remove_all(to);
+			}
 			std::filesystem::copy(from, to, std::filesystem::copy_options::recursive);
 			counter++;
 		}
@@ -1607,6 +1643,9 @@ void Package::materializeDependencies(const Package &pkg)
 			std::filesystem::path from = usePath;
 			std::filesystem::path to = utils::fs::extendPath<1>(includesUsesLib, { std::to_string(counter).c_str() });
 
+			if (std::filesystem::exists(to)) {
+				std::filesystem::remove_all(to);
+			}
 			std::filesystem::copy(from, to, std::filesystem::copy_options::recursive);
 			counter++;
 		}
@@ -1623,7 +1662,7 @@ void Package::materializeDependencies(const Package &pkg)
 		const Package& dep = std::get<Package>(depMaybe);
 
 		// materialize dependency before copying contents
-		Package::materializeDependencies(dep);
+		Package::materializeDependencies(dep, entry);
 
 		if (dep.type == PackageType::Composed) {
 			// composed package, create it's directories
@@ -1637,6 +1676,9 @@ void Package::materializeDependencies(const Package &pkg)
 		std::vector<DependencyTarget> targets = Package::dependencyTargets(pkg, dep);
 
 		for (DependencyTarget& target: targets) {
+			if (std::filesystem::exists(target.to)) {
+				std::filesystem::remove_all(target.to);
+			}
 			std::filesystem::copy(
 				target.from,
 				target.to,
@@ -1906,7 +1948,7 @@ void Package::push(const Package &pkg)
 	const auto pkgDir = Package::getPath(pkg);
 
 	// materialize dependencies so the package is portable
-	Package::materializeDependencies(pkg);
+	Package::materializeDependencies(pkg, pkg);
 
 	// get value of CPPM_ENABLE_GIT
 	// user may have set it to "1", we want to restore it to what it was later
@@ -2822,11 +2864,8 @@ void Package::display(const Package& pkg)
 		
 	PrintNice::print();
 	
-	if (pkg.managed) {
-		Package::listDependencies(pkg);
-	
-		PrintNice::print();
-	}
+	Package::listDependencies(pkg);
+	PrintNice::print();
 
 	Package::listDependents(pkg);
 

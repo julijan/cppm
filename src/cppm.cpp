@@ -672,7 +672,7 @@ int main(int argc, const char* argv[]) {
 
 			// materialize current package
 			const Package pkg = std::get<Package>(package);
-			Package::materializeDependencies(pkg);
+			Package::materializeDependencies(pkg, pkg);
 
 			return 0;
 		}
@@ -683,7 +683,7 @@ int main(int argc, const char* argv[]) {
 				std::cerr << "Skipped package " << argv[i] << ", not found" << std::endl;
 				continue;
 			}
-			Package::materializeDependencies(std::get<Package>(pkg));
+			Package::materializeDependencies(std::get<Package>(pkg), std::get<Package>(pkg));
 		}
 	}
 

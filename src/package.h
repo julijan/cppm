@@ -234,7 +234,7 @@ public:
 	// copy contents of all dependencies into includes directory instead of symlinks
 	// this makes the project portable but consumes more space
 	// used before cppm push
-	static void materializeDependencies(const Package& pkg);
+	static void materializeDependencies(const Package& pkg, const Package& entry);
 
 	// unmaterialize dependencies
 	// reverse of materialize dependencies, deletes everything from includes and creates symbolic links
