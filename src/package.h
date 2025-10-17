@@ -178,6 +178,9 @@ public:
 	// return package dependencies
 	static std::vector<Package> getDependencies(const Package& pkg);
 
+	// return package dependencies including transient dependencies
+	static std::unordered_set<std::string> getDependenciesDeep(const Package& pkg);
+
 	// add dep as dependency of pkg
 	static void addDependency(Package& pkg, Package& dep);
 

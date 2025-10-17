@@ -3,6 +3,7 @@
 #include <fstream>
 #include <cstring>
 #include <cstdio>
+#include <unordered_set>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -1208,6 +1209,22 @@ std::vector<Package> Package::getDependencies(const Package &pkg)
 	);
 
 	return dependencies;
+}
+
+std::unordered_set<std::string> Package::getDependenciesDeep(const Package& pkg) {
+	std::unordered_set<std::string> depsDeep;
+
+	std::vector<Package> deps = Package::getDependencies(pkg);
+	for (const Package& dep: deps) {
+		// insert direct dependency
+		depsDeep.insert(dep.name);
+		
+		// include it's transient dependencies recursively
+		std::unordered_set<std::string> depsTransient = Package::getDependenciesDeep(dep);
+		depsDeep.insert(depsTransient.begin(), depsTransient.end());
+	}
+
+	return depsDeep;
 }
 
 void Package::addDependency(Package &pkg, Package &dep)
