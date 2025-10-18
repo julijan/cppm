@@ -4,6 +4,7 @@
 #include <cstring>
 #include <cstdio>
 #include <unordered_set>
+#include <variant>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -12,6 +13,7 @@
 #include "fmt/format.h"
 
 #include "package.h"
+#include "types.h"
 #include "utils.h"
 #include "core.h"
 #include "PrintNice.h"
@@ -1588,126 +1590,81 @@ void Package::materializeDependencies(const Package &pkg, const Package& entry)
 		return;
 	}
 
-	if (pkg.dependencies.size() == 0 && pkg.uses.size() == 0) {
+	if (entry.dependencies.size() == 0 && entry.uses.size() == 0) {
 		// nothing to do
 		return;
 	}
 
-	if (!pkg.managed) {
-		// materializing non managed package
-		std::filesystem::path srcDir = Package::getPath<3>(
-			entry, { "includes", "src", pkg.name.c_str() }
-		);
-		std::filesystem::path libDir = Package::getPath<3>(
-			entry, { "includes", "lib", pkg.name.c_str() }
+	if (pkg.name == entry.name) {
+		// entry point
+		PrintNice::print(
+			("Materializing package " + entry.name + "...").c_str(),
+			OutputType::Normal,
+			TextStyle::Italic
 		);
 
-		if (std::filesystem::exists(srcDir)) {
-			std::filesystem::remove_all(srcDir);
-		}
-		std::filesystem::copy(pkg.path, srcDir, std::filesystem::copy_options::recursive)
-		;
-		if (std::filesystem::exists(libDir)) {
-			std::filesystem::remove_all(libDir);
-		}
-		std::filesystem::copy(pkg.path, libDir, std::filesystem::copy_options::recursive);
+		// get all dependencies, including transient, and materialize them recursively
+		std::unordered_set<std::string> deps = Package::getDependenciesDeep(entry);
 
-		// materialize dependencies of non-managed package
-		std::vector<Package> deps = Package::getDependencies(pkg);
-		for (Package& dep: deps) {
-			Package::materializeDependencies(dep, entry);
+		for (const std::string& depName: deps) {
+			MaybePackage dep = Package::get(depName.c_str());
+			if (std::holds_alternative<PackageNotFound>(dep)) {
+				
+				PrintNice::error("Missing dependency " + depName + ", skipped");
+				continue;
+			}
+			// materialize dependency
+			Package::materializeDependencies(std::get<Package>(dep), entry);
 		}
-		
+
+		PrintNice::success("✓ Package " + pkg.name + " materialized");
+
 		return;
 	}
 
-	// delete entire includes directory
-	std::filesystem::path includesDir = Package::getPath<1>(pkg, { "includes" });
-	std::filesystem::path includesSrc = Package::getPath<2>(pkg, { "includes", "src" });
-	std::filesystem::path includesLib = Package::getPath<2>(pkg, { "includes", "lib" });
-	std::filesystem::remove_all(includesDir);
+	// materialize the dependency
+	PrintNice::print(
+		("Materializing dependency " + pkg.name + "...").c_str(),
+		OutputType::Normal,
+		TextStyle::Italic
+	);
+	Package::materializeDependencies(pkg, pkg);
 
-	// re-create includes directories
-	Package::createIncludesDirectories(pkg);
+	PrintNice::print(
+		("Dependency " + pkg.name + " materialized").c_str(),
+		OutputType::Info,
+		TextStyle::Italic
+	);
 
-	// copy used global libs
-	for (const std::string& usedLib: pkg.uses) {
-		
-		// create directories for current used lib
-		std::filesystem::path includesUsesSrc = Package::getPath<4>(pkg, { "includes", "uses", "src", usedLib.c_str() });
-		std::filesystem::create_directory(includesUsesSrc);
-		std::filesystem::path includesUsesLib = Package::getPath<4>(pkg, { "includes", "uses", "lib", usedLib.c_str() });
-		std::filesystem::create_directory(includesUsesLib);
+	// copy materialized dependency to entry Package
+	PrintNice::print(
+		("Copying materialized " + pkg.name + " to " + entry.name + "...").c_str(),
+		OutputType::Info,
+		TextStyle::Italic
+	);
+	std::vector<DependencyTarget> targets = Package::dependencyTargets(entry, pkg);
 
-		// copy includes files
-		std::unordered_set<std::string> libIncludeDirs = Package::useIncludeDirs(pkg, usedLib.c_str());
-		int counter = 0;
-		for (auto& usePath: libIncludeDirs) {
-			std::filesystem::path from = usePath;
-			std::filesystem::path to = utils::fs::extendPath<1>(includesUsesSrc, { std::to_string(counter).c_str() });
-
-			if (std::filesystem::exists(to)) {
-				std::filesystem::remove_all(to);
-			}
-			std::filesystem::copy(from, to, std::filesystem::copy_options::recursive);
-			counter++;
+	for (auto& target: targets) {
+		if (std::filesystem::exists(target.to)) {
+			std::filesystem::remove_all(target.to);
 		}
 
-		// copy lib files
-		std::unordered_set<std::string> libLibDirs = Package::useLibDirs(pkg, usedLib.c_str());
-		counter = 0;
-		for (auto& usePath: libLibDirs) {
-			std::filesystem::path from = usePath;
-			std::filesystem::path to = utils::fs::extendPath<1>(includesUsesLib, { std::to_string(counter).c_str() });
-
-			if (std::filesystem::exists(to)) {
-				std::filesystem::remove_all(to);
-			}
-			std::filesystem::copy(from, to, std::filesystem::copy_options::recursive);
-			counter++;
-		}
+		std::filesystem::copy(
+			target.from,
+			target.to,
+			std::filesystem::copy_options::recursive
+		);
 	}
 
-	for (const std::string& depName: pkg.dependencies) {
-		MaybePackage depMaybe = Package::get(depName.c_str());
-		if (std::holds_alternative<PackageNotFound>(depMaybe)) {
-			std::cerr << "Dependency " << depName << " not found! Skipped." << std::endl;
-			continue;
-		}
+	PrintNice::print(
+		("Copied materialized " + pkg.name + " to " + entry.name + ", unmaterializing " + pkg.name).c_str(),
+		OutputType::Info,
+		TextStyle::Italic
+	);
+	PrintNice::print();
 
-		// dependency exists
-		const Package& dep = std::get<Package>(depMaybe);
-
-		// materialize dependency before copying contents
-		Package::materializeDependencies(dep, entry);
-
-		if (dep.type == PackageType::Composed) {
-			// composed package, create it's directories
-			std::filesystem::path depPathSrc = utils::fs::extendPath<1>(includesSrc, { dep.name.c_str() });
-			std::filesystem::path depPathLib = utils::fs::extendPath<1>(includesLib, { dep.name.c_str() });
-			std::filesystem::create_directory(depPathSrc);
-			std::filesystem::create_directory(depPathLib);
-		}
-
-		// copy materialized contents of the dependency to includes
-		std::vector<DependencyTarget> targets = Package::dependencyTargets(pkg, dep);
-
-		for (DependencyTarget& target: targets) {
-			if (std::filesystem::exists(target.to)) {
-				std::filesystem::remove_all(target.to);
-			}
-			std::filesystem::copy(
-				target.from,
-				target.to,
-				std::filesystem::copy_options::recursive
-			);
-		}
-
-		// un-materialize dependency
-		Package::unmaterializeDependencies(dep);
-	}
-
-	std::cout << "Package " << pkg.name << " dependencies materialized" << std::endl;
+	// unmaterialize dependency
+	Package::unmaterializeDependencies(pkg);
 }
 
 void Package::unmaterializeDependencies(const Package &pkg)
@@ -1736,10 +1693,12 @@ void Package::unmaterializeDependencies(const Package &pkg)
 			Package::unmaterializeDependencies(std::get<Package>(depMaybe));
 			continue;
 		}
-		std::cerr << "Can't unmaterialize dependency of " << pkg.name << ", " << depName << ", not found. Skipped." << std::endl;
+		PrintNice::error(
+			"Can't unmaterialize dependency of " + pkg.name + ", " + depName + ", not found. Skipped."
+		);
 	}
 
-	std::cout << "Package " << pkg.name << " dependencies unmaterialized" << std::endl;
+	PrintNice::success("Package " + pkg.name + " dependencies unmaterialized");
 }
 
 std::vector<Package> Package::dependents(const char *const name)
