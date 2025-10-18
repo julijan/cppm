@@ -609,7 +609,7 @@ void Package::registerPackage(const std::filesystem::path &p, bool managed, cons
 			return;
 		}
 
-		// if we are here, user managed to make the directory conform to managed packaege structure
+		// if we are here, user managed to make the directory conform to managed package structure
 	}
 
 	// no existing package in the path, ok to register
@@ -1234,7 +1234,7 @@ std::unordered_set<std::string> Package::getDependenciesDeep(const Package& pkg)
 void Package::addDependency(Package &pkg, Package &dep)
 {
 	if (Package::isDependency(pkg, dep)) {
-		PrintNice::warning(fmt::format("{} already a dependecy of {}", dep.name, pkg.name));
+		PrintNice::warning(fmt::format("{} already a dependency of {}", dep.name, pkg.name));
 		return;
 	}
 
@@ -1250,7 +1250,7 @@ void Package::addDependency(Package &pkg, Package &dep)
 		Package::generatePremake(pkg);
 	}
 
-	PrintNice::success(fmt::format("{} added as a dependecy of {}", dep.name, pkg.name));
+	PrintNice::success(fmt::format("{} added as a dependency of {}", dep.name, pkg.name));
 }
 
 void Package::addDependency(Package &pkg, const char *const name)
@@ -1967,7 +1967,7 @@ void Package::push(const Package &pkg)
 		utils::system::runCommand("cd " + pkgDir.string() + " && CPPM_ENABLE_GIT=1 git push origin main");
 		
 	} else {
-		// no dependecy changes, unstage
+		// no dependency changes, unstage
 		PrintNice::info("Dependencies unchanged");
 		utils::system::runCommand("cd " + pkgDir.string() + " && git reset includes/");
 	}

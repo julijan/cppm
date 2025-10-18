@@ -125,7 +125,7 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 		.arguments = {
 			{
 				.name = "packageName",
-				.description = "Package name to unregister. Required, unless you are within the package directory in which case, if ommitted, current package is assumed",
+				.description = "Package name to unregister. Required, unless you are within the package directory in which case, if omitted, current package is assumed",
 				.required = false,
 				.list = true,
 				.literal = false
@@ -266,7 +266,7 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 	{
 		.command = "vcpkg",
 		.alias = "",
-		.description = "Register or install+register a package from vcpkg repository, registerering all it's dependencies in the process. If you already have a vcpkg package installed use action register, otherwise use action install, it will first install the package using vcpkg, then register it.",
+		.description = "Register or install+register a package from vcpkg repository, registerring all it's dependencies in the process. If you already have a vcpkg package installed use action register, otherwise use action install, it will first install the package using vcpkg, then register it.",
 		.descriptionShort = "Register a package from vcpkg repository",
 		.arguments = {
 			{
@@ -315,7 +315,7 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 		.arguments = {
 			{
 				.name = "action",
-				.description = "Can be one of: add, run, remove. If ommitted, all defined tests will be executed.",
+				.description = "Can be one of: add, run, remove. If omitted, all defined tests will be executed.",
 				.required = false,
 				.list = false,
 				.literal = false
@@ -393,8 +393,8 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 	{
 		.command = "materialize",
 		.alias = "",
-		.description = "By default, cppm creates symbolic links in includes directory to link the dependencies to your package. This works for local compilation and development, but such package is not portable and will fail to compile if shared as such. When you run materialize, it copies all dependecy files into includes directory, producing a portable and distributable package, which should compile on any compatible system. You can revert this operation using unmaterialize command.",
-		.descriptionShort = "Produce portable package by copying all dependecy files into includes directory",
+		.description = "By default, cppm creates symbolic links in includes directory to link the dependencies to your package. This works for local compilation and development, but such package is not portable and will fail to compile if shared as such. When you run materialize, it copies all dependency files into includes directory, producing a portable and distributable package, which should compile on any compatible system. You can revert this operation using unmaterialize command.",
+		.descriptionShort = "Produce portable package by copying all dependency files into includes directory",
 		.arguments = {
 			{
 				.name = "packageName",

@@ -207,12 +207,12 @@ public:
 
 	// given the dependency package
 	// returns vector of paths that should be linked in includes/src directory of the dependent
-	// it dependes on whether the dependency is managed/composed
+	// it depends on whether the dependency is managed/composed
 	static std::vector<std::filesystem::path> dependencyTargetsIncludes(const Package& dep);
 
 	// given the dependency package
 	// returns path that should be linked in includes/lib directory of the dependent
-	// it dependes on whether the dependency is managed
+	// it depends on whether the dependency is managed
 	static std::vector<std::filesystem::path> dependencyTargetsLib(const Package& dep);
 
 	// given a package and it's dependency, produces a vector of DependencyTarget where
@@ -270,7 +270,7 @@ public:
 	static void generateVSC(const Package& pkg);
 
 	// generate VSC configuration that allows debugging (launch.json and tasks.json)
-	// args used as configuration.args - command line arguments passed dueing debug
+	// args used as configuration.args - command line arguments passed during debug
 	static void generateVSCDebugConf(const Package& pkg, std::vector<std::string>& args);
 
 	// returns true if directory projectDir/.vscode exists

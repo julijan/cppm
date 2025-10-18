@@ -123,7 +123,7 @@ int main(int argc, const char* argv[]) {
 		// remove a dependency
 
 		if (!isPackage) {
-			PrintNice::warning("To remove a dependency you must be withn a package.");
+			PrintNice::warning("To remove a dependency you must be within a package.");
 			return 1;
 		}
 
@@ -154,7 +154,7 @@ int main(int argc, const char* argv[]) {
 	}
 
 	if (strcmp(command, "unregister") == 0) {
-		// unregister provided package name, if omiitted unregister the current path as a package
+		// unregister provided package name, if omitted unregister the current path as a package
 		if (argc == 2) {
 			// no arguments provided, must be within package directory
 			if (!isPackage) {
@@ -578,7 +578,7 @@ int main(int argc, const char* argv[]) {
 	}
 
 	if (strcmp(command, "mv") == 0 || strcmp(command, "move") == 0) {
-		// move project to given path updating dependendents
+		// move project to given path updating dependents
 
 		if (argc == 2) {
 			std::cerr << "Not enough arguments, run 'cppm help mv' for information on how to use it" << std::endl;
