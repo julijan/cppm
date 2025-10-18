@@ -243,6 +243,9 @@ public:
 	// reverse of materialize dependencies, deletes everything from includes and creates symbolic links
 	static void unmaterializeDependencies(const Package& pkg);
 
+	// create a distributable source package archive
+	static void createDist(const Package& pkg);
+
 	// returns packages that depend on given package
 	static std::vector<Package> dependents(const char* const name);
 

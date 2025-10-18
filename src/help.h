@@ -406,6 +406,21 @@ inline const std::vector<HelpItem> HELP_ITEMS = {
 		}
 	},
 	{
+		.command = "dist",
+		.alias = "",
+		.description = "Produce portable package source archive. Similar to materialize, but it produces .tar.gz archive with distributable source. For more info on how this works, run: cppm help materialize.",
+		.descriptionShort = "Produce portable package source archive",
+		.arguments = {
+			{
+				.name = "packageName",
+				.description = "Package name(s) to produce the distributable archive for. Required, unless within a managed package directory in which case current package is assumed.",
+				.required = false,
+				.list = true,
+				.literal = false
+			}
+		}
+	},
+	{
 		.command = "unmaterialize",
 		.alias = "",
 		.description = "Removes previously materialized dependency files from includes directory and re-establishes them as symbolic links. This produces a leaner and dynamic package, but it is not portable is such state. Use this if you previously used materialize to produce a distributable package, and want to resume development.",

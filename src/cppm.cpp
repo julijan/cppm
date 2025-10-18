@@ -687,6 +687,32 @@ int main(int argc, const char* argv[]) {
 		}
 	}
 
+	if (strcmp(command, "dist") == 0) {
+		// create dist archive
+		if (argc == 2) {
+
+			if (!isPackage) {
+				std::cerr << "Not within package and package name not provided" << std::endl;
+				return 0;
+			}
+
+			// current package
+			const Package pkg = std::get<Package>(package);
+			Package::createDist(pkg);
+
+			return 0;
+		}
+
+		for (int i = 2; i < argc; i++) {
+			MaybePackage pkg = Package::get(argv[i]);
+			if (std::holds_alternative<PackageNotFound>(pkg)) {
+				std::cerr << "Skipped package " << argv[i] << ", not found" << std::endl;
+				continue;
+			}
+			Package::createDist(std::get<Package>(pkg));
+		}
+	}
+
 	if (strcmp(command, "unmaterialize") == 0) {
 		// unmaterialize dependencies
 		if (argc == 2) {

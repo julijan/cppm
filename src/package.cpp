@@ -21,6 +21,7 @@
 #include "j-utils-json/j-utils-json.h"
 #include "j-utils-string/j-utils-string.h"
 #include "j-utils-system/j-utils-system.h"
+#include "j-utils-archive/j-utils-archive.h"
 
 Package::Package(std::string name, std::string path, PackageType type, bool managed)
 {
@@ -1702,6 +1703,68 @@ void Package::unmaterializeDependencies(const Package &pkg)
 	}
 
 	PrintNice::success("Package " + pkg.name + " dependencies unmaterialized");
+}
+
+void Package::createDist(const Package& pkg) {
+
+	if (!pkg.managed) {return;}
+
+	// materialize package
+	Package::materializeDependencies(pkg, pkg);
+
+	// create dist directory
+	std::string distDirName = pkg.name + "-dist-src";
+	std::filesystem::path distPath = Package::getPath<1>(pkg, { distDirName.c_str() });
+
+	if (std::filesystem::exists(distPath)) {
+		PrintNice::warning("Directory " + distDirName + " already exists");
+		return;
+	}
+
+	std::filesystem::create_directory(distPath);
+
+	// copy src to dist
+	std::filesystem::path srcPath = Package::getPath<1>(pkg, { "src" });
+	std::filesystem::copy(
+		srcPath,
+		utils::fs::extendPath<1>(distPath, { "src" }),
+		std::filesystem::copy_options::recursive
+	);
+
+	// copy includes to dist
+	std::filesystem::path includesPath = Package::getPath<1>(pkg, { "includes" });
+	std::filesystem::copy(
+		includesPath,
+		utils::fs::extendPath<1>(distPath, { "includes" }),
+		std::filesystem::copy_options::recursive
+	);
+
+	// copy tests to dist
+	std::filesystem::path testsPath = Package::getPath<1>(pkg, { "tests" });
+	std::filesystem::copy(
+		testsPath,
+		utils::fs::extendPath<1>(distPath, { "tests" }),
+		std::filesystem::copy_options::recursive
+	);
+
+	// copy premake5.lua to dist
+	std::filesystem::path premakePath = Package::getPath<1>(pkg, { "premake5.lua" });
+	std::filesystem::copy(premakePath, distPath, std::filesystem::copy_options::recursive);
+
+	// unmaterialize
+	Package::unmaterializeDependencies(pkg);
+
+	// archive the dist dir
+	utils::archive::compress(
+		distPath,
+		Package::getPath<1>(pkg, { (distDirName + ".tar.gz").c_str() })
+	);
+
+	// remove the dist dir
+	std::filesystem::remove_all(distPath);
+
+	PrintNice::print();
+	PrintNice::success("✓ Dist archive created in " + distPath.string());
 }
 
 std::vector<Package> Package::dependents(const char *const name)
