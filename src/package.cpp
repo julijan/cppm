@@ -1917,7 +1917,7 @@ void Package::push(const Package &pkg)
 	// check if .git directory exists
 	const auto gitDir = Package::getPath<1>(pkg, { ".git" });
 	if (!std::filesystem::exists(gitDir)) {
-		std::cerr << ".git directory not found within package directory, aborted." << std::endl;
+		PrintNice::error(".git directory not found within package directory, aborted.");
 		return;
 	}
 
@@ -1939,22 +1939,34 @@ void Package::push(const Package &pkg)
 	// stage ./includes
 	utils::system::runCommand("cd " + pkgDir.string() + " && git add -f includes/");
 
-	std::cout << "Checking dependencies for changes" << std::endl;
+	PrintNice::info("Checking dependencies for changes");
 
 	// check if there are changes in staged ./includes
 	bool dependenciesChanged = utils::system::runCommand("cd " + pkgDir.string() + " && git diff --staged --exit-code --quiet includes/") != 0;
 
 	if (dependenciesChanged) {
 		// dependencies changed, commit
-		std::cout << "Dependencies changed and will be committed" << std::endl;
-		utils::system::runCommand("cd " + pkgDir.string() + " && git commit -m \"Dependency changes\"");
+		PrintNice::info("Dependencies changed and will be committed");
+		PrintNice::info(
+			"Enter commit message for dependency changes or leave blank to use \"Dependency changes\":"
+		);
+
+		// allow user to specify the commit message for dependency changes
+		std::string commitMessage = "";
+		std::getline(std::cin, commitMessage);
+
+		if (utils::string::trim(commitMessage) == "") {
+			commitMessage = "Dependency changes";
+		}
+
+		utils::system::runCommand("cd " + pkgDir.string() + " && git commit -m \""+ commitMessage +"\"");
 
 		// push to remote
 		utils::system::runCommand("cd " + pkgDir.string() + " && CPPM_ENABLE_GIT=1 git push origin main");
 		
 	} else {
 		// no dependecy changes, unstage
-		std::cout << "Dependencies unchanged" << std::endl;
+		PrintNice::info("Dependencies unchanged");
 		utils::system::runCommand("cd " + pkgDir.string() + " && git reset includes/");
 	}
 
