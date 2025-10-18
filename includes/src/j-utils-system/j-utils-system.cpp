@@ -1,5 +1,6 @@
 #include <filesystem>
 #include "j-utils-system.h"
+#include "j-utils-string.h"
 
 namespace utils {
 
@@ -56,6 +57,33 @@ namespace utils {
 				return "/home/" + user();
 			}
 			return "C:\\Users\\" + user() + "\\Local";
+		}
+
+		std::filesystem::path confPath(const std::string& appName) {
+			if (type() == SystemType::Unix) {
+				// try using $XDG_CONFIG_HOME
+				std::string xdgConfigHome = utils::string::trim(
+					runCommandOutput("echo $XDG_CONFIG_HOME")
+				);
+
+				if (xdgConfigHome.length() > 0) {
+					return xdgConfigHome + "/" + appName;
+				}
+
+				// fall back to $HOME/.config
+				std::string homeDir = utils::string::trim(
+					runCommandOutput("echo $HOME")
+				);
+
+				if (homeDir.length() > 0) {
+					return homeDir + "/.config/" + appName;
+				}
+
+				// fall back to /home/$USER/.config
+				return "/home/" + user() + "/.config/" + appName;
+			}
+
+			return appDataDir() + "\\" + appName;
 		}
 
 	}
