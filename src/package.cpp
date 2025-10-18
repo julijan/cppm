@@ -145,22 +145,6 @@ bool Package::create(const char *const name)
 	// store to registry
 	Package::addToRegistry(pkg);
 
-	// create hello world entry point
-	std::string helloWorldFileName = pkg.name + ".cpp";
-	std::ofstream fs(std::filesystem::path(projectDir).append("src").append(helloWorldFileName));
-
-	if (fs.is_open()) {
-		// no need to fail here if failed to open
-		// hello world is not required, just a convenience
-		fs << "#include <iostream>\n" << std::endl;
-		fs << "int main() {" << std::endl;
-		fs << "\tstd::cout << \"Hello, world!\" << std::endl;" << std::endl;
-		fs << "\treturn 0;" << std::endl;
-		fs << '}' << std::endl;
-
-		fs.close();
-	}
-
 	// create .gitignore
 	std::filesystem::path gitignorePath = Package::getPath<1>(pkg, { ".gitignore" });
 	std::ofstream fsGitIgnore(gitignorePath);
@@ -209,6 +193,24 @@ run `cppm help` to learn about all the features at your disposal.
 
 	// create premake5.lua
 	Package::generatePremake(pkg);
+
+	// create hello world entry point
+	Package::addSrc(pkg, pkg.name);
+	std::string helloWorldFileName = pkg.name + ".cpp";
+	std::filesystem::path cppPath = Package::getPath<2>(pkg, { "src", helloWorldFileName.c_str() });
+	std::ofstream fs(cppPath);
+
+	if (fs.is_open()) {
+		// no need to fail here if failed to open
+		// hello world is not required, just a convenience
+		fs << "#include <iostream>\n" << std::endl;
+		fs << "int main() {" << std::endl;
+		fs << "\tstd::cout << \"Hello, world!\" << std::endl;" << std::endl;
+		fs << "\treturn 0;" << std::endl;
+		fs << '}' << std::endl;
+
+		fs.close();
+	}
 
 	PrintNice::print(fmt::format("Package created in directory {}", name), OutputType::Success);
 
