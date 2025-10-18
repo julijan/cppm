@@ -711,6 +711,8 @@ int main(int argc, const char* argv[]) {
 			}
 			Package::unmaterializeDependencies(std::get<Package>(pkg));
 		}
+
+		return 0;
 	}
 
 	if (strcmp(command, "push") == 0) {
