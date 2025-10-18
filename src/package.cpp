@@ -2552,12 +2552,12 @@ void Package::addSrc(const Package& pkg, const std::string& srcName)
 	if (!std::filesystem::exists(cppPath)) {
 		std::ofstream f(cppPath);
 		if (f.is_open()) {
-			f << std::endl;
+			f << "#include " << '"' << hName << '"' << '\n' << std::endl;
 		}
 		f.close();
 		added = true;
 	} else {
-		std::cout << ".cpp file exists, skipping" << std::endl;
+		PrintNice::warning(cppName + " exists, skipping");
 	}
 
 	if (!std::filesystem::exists(hPath)) {
@@ -2568,16 +2568,16 @@ void Package::addSrc(const Package& pkg, const std::string& srcName)
 		f.close();
 		added = true;
 	} else {
-		std::cout << ".h file exists, skipping" << std::endl;
+		PrintNice::warning(hName + " exists, skipping");
 	}
 
 	// re-generate premake
 	Package::generateCmake(pkg);
 
 	if (added) {
-		std::cout << "Source " << srcName << " added" << std::endl;
+		PrintNice::success("Source " + srcName + " added");
 	} else {
-		std::cout << "No files were created" << std::endl;
+		PrintNice::info("No files were created");
 	}
 }
 
@@ -2586,8 +2586,7 @@ void Package::addSrc(const char *const pkgName, const char *srcName)
 	MaybePackage pkg = Package::get(pkgName);
 
 	if (std::holds_alternative<PackageNotFound>(pkg)) {
-		std::cerr << "Package " << pkgName << " does not exist" << std::endl;
-		return;
+		return PrintNice::warning(std::string("Package ") + pkgName + " does not exist");
 	}
 
 	Package::addSrc(std::get<Package>(pkg), srcName);
@@ -2679,7 +2678,6 @@ void Package::vcpkgRegister(const char* pkgName)
 		lines.end(),
 		std::back_inserter(packagesWithDepstring),
 		[](std::string& line) {
-			// std::cout << "L: " << line << std::endl;
 			return utils::string::split(line, ":");
 		}
 	);
