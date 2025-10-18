@@ -1,3 +1,4 @@
+#include <ios>
 #include <iostream>
 #include <filesystem>
 #include <fstream>
@@ -198,7 +199,7 @@ run `cppm help` to learn about all the features at your disposal.
 	Package::addSrc(pkg, pkg.name);
 	std::string helloWorldFileName = pkg.name + ".cpp";
 	std::filesystem::path cppPath = Package::getPath<2>(pkg, { "src", helloWorldFileName.c_str() });
-	std::ofstream fs(cppPath);
+	std::ofstream fs(cppPath, std::ios::app);
 
 	if (fs.is_open()) {
 		// no need to fail here if failed to open
