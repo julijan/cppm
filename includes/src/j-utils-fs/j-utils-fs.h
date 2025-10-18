@@ -15,6 +15,9 @@ namespace utils {
 
 		path currentPath();
 
+		// given 2 absolute paths, returns a relative path from -> to
+		path relativePath(path from, path to);
+
 		// append all given sub-directories to given path
 		// returns a new path
 		template <int Depth>

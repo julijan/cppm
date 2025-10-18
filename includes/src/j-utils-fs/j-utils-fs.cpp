@@ -1,4 +1,6 @@
 #include "j-utils-fs.h"
+#include "j-utils-string.h"
+#include <string>
 
 namespace utils {
 
@@ -17,6 +19,16 @@ namespace utils {
 		path currentPath()
 		{
 			return current_path();
+		}
+
+		path relativePath(path from, path to) {
+			std::string fromString = from.string();
+			std::string toString = to.string();
+			bool fromEndsWithSeparator = utils::string::endsWith(
+				fromString,
+				std::to_string(path::preferred_separator)
+			);
+			return to.string().substr(from.string().length() - (fromEndsWithSeparator ? 1 : 0));
 		}
 
 		std::vector<path> filterRecursive(path entry, std::function<bool(const path& path)> predicate) {
